@@ -1,0 +1,12 @@
+<div class="space-y-4">
+    {% for note in notes %}
+    <div class="border-b border-gray-100 pb-4 last:border-0">
+        <h3 class="font-medium text-indigo-900">{{ note.title or "Untitled Note" }}</h3>
+        <p class="text-xs text-gray-400 mb-1">{{ note.created_at }}</p>
+        <p class="text-sm text-gray-600 line-clamp-3">{{ note.content }}</p>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">No notes found yet.</p>
+    {% endfor %}
+</div>
+

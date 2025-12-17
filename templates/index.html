@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scribe - Voice Notes</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline;
+        }
+        .htmx-request.htmx-indicator {
+            display: inline;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-indigo-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Scribe</h1>
+            <div class="relative w-1/3">
+                <input type="text" 
+                       name="q" 
+                       placeholder="Search notes..." 
+                       class="w-full p-2 rounded text-gray-800"
+                       hx-get="/search" 
+                       hx-trigger="keyup changed delay:500ms" 
+                       hx-target="#search-results"
+                       hx-indicator="#search-indicator">
+                <span id="search-indicator" class="htmx-indicator absolute right-3 top-2 text-gray-500">
+                    <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto mt-8 flex gap-8 p-4">
+        <!-- Left Column: Upload & Recent -->
+        <div class="w-1/3 space-y-8">
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4">Add New Note</h2>
+                <form hx-post="/upload" hx-encoding="multipart/form-data" hx-target="#upload-status" hx-indicator="#upload-indicator" hx-on::after-request="this.reset()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Audio File</label>
+                        <input type="file" name="file" accept="audio/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition duration-200 flex justify-center items-center">
+                        <span>Upload & Process</span>
+                        <span id="upload-indicator" class="htmx-indicator ml-2">
+                            <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </form>
+                <div id="upload-status" class="mt-4"></div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4">Recent Notes</h2>
+                <div id="notes-list" hx-get="/notes/recent" hx-trigger="load">
+                    <!-- Loaded via HTMX -->
+                    <p class="text-gray-500 italic">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Search Results -->
+        <div class="w-2/3">
+            <div id="search-results">
+                <div class="bg-white p-12 rounded-lg shadow-sm border border-dashed border-gray-300 text-center text-gray-400">
+                    <p class="text-lg">Your search results will appear here.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+
