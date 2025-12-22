@@ -12,7 +12,7 @@ from app.models.user import User, UserSettings
 from app.schemas.auth import ApiTokenResponse, Token, UserCreate, UserResponse
 from app.services.auth_service import create_access_token, get_password_hash, verify_password
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)

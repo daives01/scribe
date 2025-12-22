@@ -13,7 +13,7 @@ from app.services.note_service import NoteService
 from app.tasks.processing_tasks import process_new_note, reprocess_note
 from app.utils.exceptions import NotFoundError
 
-router = APIRouter(tags=["notes"])
+router = APIRouter(prefix="/api", tags=["notes"])
 
 # Directory for storing uploaded audio files
 UPLOAD_DIR = Path("uploads")
@@ -33,6 +33,9 @@ async def upload_voice_note(
     The note is created immediately with 'pending' status, and processing
     happens in the background. Poll the note endpoint to check status.
     """
+    print(f"\n[DEBUG] Reached upload_voice_note handler")
+    print(f"[DEBUG] audio_file filename: {audio_file.filename}")
+    print(f"[DEBUG] audio_file content_type: {audio_file.content_type}")
     # Read file content
     content = await audio_file.read()
 

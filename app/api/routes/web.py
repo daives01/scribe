@@ -215,6 +215,7 @@ async def settings_page(
             "settings": {
                 "ollama_url": user_settings.ollama_url,
                 "ollama_model": user_settings.ollama_model,
+                "ollama_embedding_model": user_settings.ollama_embedding_model,
                 "ollama_api_key": user_settings.ollama_api_key,
                 "custom_tags": custom_tags,
             },
@@ -491,6 +492,7 @@ async def ask_question(
         ollama = get_ollama_service(
             base_url=user_settings.ollama_url,
             model=user_settings.ollama_model,
+            embedding_model=user_settings.ollama_embedding_model,
             api_key=user_settings.ollama_api_key,
         )
         answer = await ollama.answer_question(question, results)
@@ -613,9 +615,10 @@ async def update_settings_web(
     access_token: Optional[str] = Cookie(default=None),
     ollama_url: Annotated[str | None, Form()] = None,
     ollama_model: Annotated[str | None, Form()] = None,
+    ollama_embedding_model: Annotated[str | None, Form()] = None,
     ollama_api_key: Annotated[str | None, Form()] = None,
     custom_tags: Annotated[str | None, Form()] = None,
-):
+) -> HTMLResponse:
     """
     Update user settings (HTMX Form).
     
@@ -632,6 +635,9 @@ async def update_settings_web(
     
     if ollama_model is not None:
         user_settings.ollama_model = ollama_model
+
+    if ollama_embedding_model is not None:
+        user_settings.ollama_embedding_model = ollama_embedding_model
         
     if ollama_api_key is not None:
         # Handle empty string as None/empty

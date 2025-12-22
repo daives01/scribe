@@ -86,7 +86,7 @@
                             <ul class="list-disc list-inside pl-4 mt-1 space-y-1"
                                 style="color: var(--color-text-secondary);">
                                 <li>URL: <code class="px-1 rounded"
-                                        style="background-color: var(--color-bg-primary);">{{ server_url }}/upload</code>
+                                        style="background-color: var(--color-bg-primary);">{{ server_url }}/api/upload</code>
                                 </li>
                                 <li>Method: <strong>POST</strong></li>
                                 <li>Headers:
@@ -98,7 +98,8 @@
                                     <ul class="list-disc list-inside pl-4">
                                         <li>Key: <code>audio_file</code>, Type: <strong>File</strong>, Value:
                                             <em>Recorded
-                                                Audio</em></li>
+                                                Audio</em>
+                                        </li>
                                     </ul>
                                 </li>
                             </ul>
@@ -163,6 +164,17 @@
                 </div>
                 <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The model to use for summarization
                     and Q&A</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">Embedding Model</label>
+                <div class="relative">
+                    <input type="text" name="ollama_embedding_model" value="{{ settings.ollama_embedding_model }}"
+                        placeholder="nomic-embed-text" class="w-full px-4 py-3 rounded-lg border"
+                        style="border-color: var(--color-border);" />
+                </div>
+                <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The model to use for semantic search
+                    (e.g., nomic-embed-text, all-minilm)</p>
             </div>
 
             <div>

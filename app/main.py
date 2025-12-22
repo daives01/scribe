@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -47,6 +47,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def diagnostic_middleware(request: Request, call_next):
+    """Log request details for debugging."""
+    print(f"\n[DEBUG] {request.method} {request.url}")
+    # Print headers but obscure the Authorization token for security
+    headers = dict(request.headers)
+    if "authorization" in headers:
+        headers["authorization"] = "Bearer ********"
+    print(f"[DEBUG] Headers: {headers}")
+    
+    try:
+        response = await call_next(request)
+        print(f"[DEBUG] Response: {response.status_code}")
+        return response
+    except Exception as e:
+        print(f"[DEBUG] Request error: {str(e)}")
+        raise
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

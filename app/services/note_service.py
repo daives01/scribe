@@ -134,7 +134,7 @@ class NoteService:
 
     def delete_note(self, note_id: int, user_id: int) -> bool:
         """
-        Delete a note.
+        Delete a note and its associated audio file.
 
         Args:
             note_id: Note ID to delete
@@ -147,6 +147,18 @@ class NoteService:
             NotFoundError: If note not found or doesn't belong to user
         """
         note = self.get_note(note_id, user_id)
+
+        # Delete audio file if it exists
+        if note.audio_path:
+            from pathlib import Path
+            audio_path = Path(note.audio_path)
+            try:
+                if audio_path.exists():
+                    audio_path.unlink()
+                    logger.info(f"Deleted audio file: {audio_path}")
+            except Exception as e:
+                logger.error(f"Error deleting audio file {audio_path}: {e}")
+
         self.session.delete(note)
         self.session.commit()
         return True
@@ -170,6 +182,7 @@ class NoteService:
         ollama = get_ollama_service(
             base_url=user_settings.ollama_url,
             model=user_settings.ollama_model,
+            embedding_model=user_settings.ollama_embedding_model,
             api_key=user_settings.ollama_api_key,
         )
 

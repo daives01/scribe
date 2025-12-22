@@ -8,6 +8,7 @@ class UserSettingsResponse(BaseModel):
 
     ollama_url: str
     ollama_model: str
+    ollama_embedding_model: str
     ollama_api_key: str | None
     custom_tags: list[str]
 
@@ -19,6 +20,7 @@ class UserSettingsUpdate(BaseModel):
 
     ollama_url: str | None = None
     ollama_model: str | None = None
+    ollama_embedding_model: str | None = None
     ollama_api_key: str | None = None
     custom_tags: list[str] | None = None
 

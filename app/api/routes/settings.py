@@ -24,6 +24,7 @@ def get_settings(user_settings: UserSettingsDep) -> UserSettingsResponse:
     return UserSettingsResponse(
         ollama_url=user_settings.ollama_url,
         ollama_model=user_settings.ollama_model,
+        ollama_embedding_model=user_settings.ollama_embedding_model,
         ollama_api_key=user_settings.ollama_api_key,
         custom_tags=custom_tags,
     )
@@ -45,6 +46,9 @@ def update_settings(
     if update_data.ollama_model is not None:
         user_settings.ollama_model = update_data.ollama_model
 
+    if update_data.ollama_embedding_model is not None:
+        user_settings.ollama_embedding_model = update_data.ollama_embedding_model
+
     if update_data.ollama_api_key is not None:
         user_settings.ollama_api_key = update_data.ollama_api_key
 
@@ -63,6 +67,7 @@ def update_settings(
     return UserSettingsResponse(
         ollama_url=user_settings.ollama_url,
         ollama_model=user_settings.ollama_model,
+        ollama_embedding_model=user_settings.ollama_embedding_model,
         ollama_api_key=user_settings.ollama_api_key,
         custom_tags=custom_tags,
     )

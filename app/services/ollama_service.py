@@ -95,23 +95,66 @@ class OllamaService:
             Serialized embedding as bytes
         """
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}/api/embed",
-                headers=self._get_headers(),
-                json={"model": self.embedding_model, "input": text},
-                timeout=60.0,
-            )
-            response.raise_for_status()
-            data = response.json()
+            try:
+                # Try the newer /api/embed endpoint first
+                response = await client.post(
+                    f"{self.base_url}/api/embed",
+                    headers=self._get_headers(),
+                    json={"model": self.embedding_model, "input": text},
+                    timeout=60.0,
+                )
+                
+                # If /api/embed is not found (404), fallback to legacy /api/embeddings
+                if response.status_code == 404 and "page not found" in response.text:
+                    logger.info("Falling back to legacy /api/embeddings endpoint")
+                    response = await client.post(
+                        f"{self.base_url}/api/embeddings",
+                        headers=self._get_headers(),
+                        json={"model": self.embedding_model, "prompt": text},
+                        timeout=60.0,
+                    )
 
-            # Ollama returns embeddings in "embeddings" array
-            embeddings = data.get("embeddings", [[]])
-            if embeddings and len(embeddings) > 0:
-                embedding = np.array(embeddings[0], dtype=np.float32)
-            else:
-                raise ValueError("No embedding returned from Ollama")
+                if response.status_code == 404:
+                    try:
+                        error_data = response.json()
+                        error_msg = error_data.get("error", "")
+                        if "not found" in error_msg.lower():
+                            raise ValueError(
+                                f"Embedding model '{self.embedding_model}' not found in Ollama. "
+                                f"Please run 'ollama pull {self.embedding_model}' or change the model in settings."
+                            )
+                    except (json.JSONDecodeError, ValueError) as e:
+                        if isinstance(e, ValueError):
+                            raise e
+                        pass
 
-            return serialize_vector(embedding)
+                response.raise_for_status()
+                data = response.json()
+
+                # Newer /api/embed returns "embeddings", legacy /api/embeddings returns "embedding"
+                if "embeddings" in data:
+                    embeddings = data.get("embeddings", [[]])
+                    if embeddings and len(embeddings) > 0:
+                        embedding = np.array(embeddings[0], dtype=np.float32)
+                    else:
+                        raise ValueError("No embedding returned from Ollama")
+                else:
+                    embedding_list = data.get("embedding", [])
+                    if embedding_list:
+                        embedding = np.array(embedding_list, dtype=np.float32)
+                    else:
+                        raise ValueError("No embedding returned from Ollama")
+
+                return serialize_vector(embedding)
+
+            except httpx.HTTPStatusError as e:
+                # Provide a more descriptive error if possible
+                try:
+                    error_json = e.response.json()
+                    error_msg = error_json.get("error", str(e))
+                except Exception:
+                    error_msg = str(e)
+                raise Exception(f"Ollama Error: {error_msg}") from e
 
     async def generate_summary_and_tag(
         self, transcript: str, available_tags: list[str]
@@ -214,6 +257,7 @@ Answer:"""
 def get_ollama_service(
     base_url: str | None = None,
     model: str | None = None,
+    embedding_model: str | None = None,
     api_key: str | None = None,
 ) -> OllamaService:
     """
@@ -222,9 +266,15 @@ def get_ollama_service(
     Args:
         base_url: Optional custom Ollama URL
         model: Optional custom model
+        embedding_model: Optional custom embedding model
         api_key: Optional API key
 
     Returns:
         Configured OllamaService instance
     """
-    return OllamaService(base_url=base_url, model=model, api_key=api_key)
+    return OllamaService(
+        base_url=base_url,
+        model=model,
+        embedding_model=embedding_model,
+        api_key=api_key,
+    )

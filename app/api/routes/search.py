@@ -8,7 +8,7 @@ from app.schemas.search import AskRequest, AskResponse, SearchRequest, SearchRes
 from app.services.note_service import NoteService
 from app.services.ollama_service import get_ollama_service
 
-router = APIRouter(tags=["search"])
+router = APIRouter(prefix="/api", tags=["search"])
 
 
 @router.post("/search", response_model=SearchResponse)
@@ -73,6 +73,7 @@ async def ask_question(
     ollama = get_ollama_service(
         base_url=user_settings.ollama_url,
         model=user_settings.ollama_model,
+        embedding_model=user_settings.ollama_embedding_model,
         api_key=user_settings.ollama_api_key,
     )
     answer = await ollama.answer_question(request.question, results)

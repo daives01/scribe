@@ -13,7 +13,7 @@ from app.models.user import User, UserSettings
 from app.services.auth_service import decode_access_token
 from app.utils.exceptions import AuthenticationError
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -51,6 +51,7 @@ def get_current_user(
     Raises:
         HTTPException: If authentication fails
     """
+    print(f"[DEBUG] Authenticating request...")
     # Try JWT token first (Header)
     if token:
         try:
@@ -58,8 +59,10 @@ def get_current_user(
             if token_data.user_id is not None:
                 user = session.get(User, token_data.user_id)
                 if user:
+                    print(f"[DEBUG] Authenticated via JWT token for user: {user.username}")
                     return user
         except AuthenticationError:
+            print(f"[DEBUG] JWT token authentication failed")
             pass
 
     # Try JWT token from Cookie
@@ -70,21 +73,28 @@ def get_current_user(
             if token_data.user_id is not None:
                 user = session.get(User, token_data.user_id)
                 if user:
+                    print(f"[DEBUG] Authenticated via Cookie for user: {user.username}")
                     return user
         except AuthenticationError:
+            print(f"[DEBUG] Cookie token authentication failed")
             pass
 
     # Try API token from Authorization header
     if authorization and authorization.startswith("Bearer "):
         api_token = authorization[7:]  # Remove "Bearer " prefix
+        print(f"[DEBUG] Attempting authentication with API token: {api_token[:5]}...")
 
         # Look up user by API token
         statement = select(User).where(User.api_token == api_token)
         user = session.exec(statement).first()
         if user:
+            print(f"[DEBUG] Authenticated via API token for user: {user.username}")
             return user
+        else:
+            print(f"[DEBUG] API token not found in database")
 
     # No valid authentication
+    print(f"[DEBUG] No valid authentication found")
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Not authenticated",

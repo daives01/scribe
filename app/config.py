@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     embedding_model: str = "nomic-embed-text"
 
     # Whisper
-    whisper_model: str = "large-v3"
+    whisper_model: str = "small"
 
 
 settings = Settings()

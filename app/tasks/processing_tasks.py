@@ -74,6 +74,7 @@ def process_new_note(note_id: int) -> None:
             ollama = get_ollama_service(
                 base_url=user_settings.ollama_url,
                 model=user_settings.ollama_model,
+                embedding_model=user_settings.ollama_embedding_model,
                 api_key=user_settings.ollama_api_key,
             )
 
@@ -151,6 +152,7 @@ def reprocess_note(note_id: int) -> None:
             ollama = get_ollama_service(
                 base_url=user_settings.ollama_url,
                 model=user_settings.ollama_model,
+                embedding_model=user_settings.ollama_embedding_model,
                 api_key=user_settings.ollama_api_key,
             )
 

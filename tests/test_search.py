@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 def test_search_requires_auth(client: TestClient):
     """Test that search requires authentication."""
     response = client.post(
-        "/search",
+        "/api/search",
         json={"query": "test"},
     )
     assert response.status_code == 401
@@ -16,7 +16,7 @@ def test_search_requires_auth(client: TestClient):
 def test_ask_requires_auth(client: TestClient):
     """Test that ask requires authentication."""
     response = client.post(
-        "/ask",
+        "/api/ask",
         json={"question": "What are my todos?"},
     )
     assert response.status_code == 401
@@ -29,7 +29,7 @@ def test_ask_requires_auth(client: TestClient):
 def test_search_notes(client: TestClient, auth_headers, test_note):
     """Test semantic search."""
     response = client.post(
-        "/search",
+        "/api/search",
         headers=auth_headers,
         json={"query": "Python programming", "limit": 5},
     )
@@ -42,7 +42,7 @@ def test_search_notes(client: TestClient, auth_headers, test_note):
 def test_ask_question(client: TestClient, auth_headers, test_note):
     """Test RAG question answering."""
     response = client.post(
-        "/ask",
+        "/api/ask",
         headers=auth_headers,
         json={"question": "What is my note about?"},
     )
