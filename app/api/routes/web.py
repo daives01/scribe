@@ -1,10 +1,13 @@
 """Web routes for HTMX frontend."""
 
+import asyncio
 import json
+import logging
+import uuid
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Cookie, Depends, Form, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
@@ -22,8 +25,12 @@ from app.services.ollama_service import get_ollama_service
 from app.utils.exceptions import AuthenticationError, NotFoundError
 
 router = APIRouter(tags=["web"])
+logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory="app/templates")
+
+# In-memory store for RAG contexts (Ask ID -> {question, results})
+chat_contexts = {}
 
 
 # Custom Jinja2 filter
@@ -431,12 +438,20 @@ async def similar_notes(
 
     user_settings = get_user_settings_for_user(session, user)
     note_service = NoteService(session)
+    logger.info(f"Finding similar notes for note_id={note_id}, user={user.username}")
 
     try:
+        note = note_service.get_note(note_id, user.id)
+        if note.processing_status != "completed":
+             return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": [], "processing": True})
+             
         notes = await note_service.get_similar_notes(note_id, user.id, user_settings, limit=5)
         return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": notes})
-    except (NotFoundError, Exception):
-        return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": []})
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error in similar_notes: {e}")
+        return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": [], "error": str(e)})
 
 
 @router.get("/web/notes/{note_id}/edit/{field}", response_class=HTMLResponse)
@@ -477,11 +492,12 @@ async def edit_note_field(
 async def search_notes(
     request: Request,
     session: SessionDep,
-    query: Annotated[str, Form()],
+    q: Annotated[Optional[str], Form()] = "",
     access_token: Optional[str] = Cookie(default=None),
 ):
     """Semantic search notes and return HTML results."""
-    if not query.strip():
+    logger.info(f"Received search request: query='{q}'")
+    if not q or not q.strip():
         return HTMLResponse(content="")
 
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -493,11 +509,12 @@ async def search_notes(
 
     try:
         results = await note_service.search_notes_semantic(
-            user_id=user.id, query=query, user_settings=user_settings, limit=10
+            user_id=user.id, query=q, user_settings=user_settings, limit=5
         )
         return templates.TemplateResponse("components/search_results.html", {"request": request, "results": results})
-    except Exception:
-        return templates.TemplateResponse("components/search_results.html", {"request": request, "results": []})
+    except Exception as e:
+        logger.exception(f"Error in search_notes: {e}")
+        return templates.TemplateResponse("components/search_results.html", {"request": request, "results": [], "error": str(e)})
 
 
 @router.get("/web/ask", response_class=HTMLResponse)
@@ -510,55 +527,161 @@ async def ask_modal(request: Request):
 async def ask_question(
     request: Request,
     session: SessionDep,
-    question: Annotated[str, Form()],
+    q: Annotated[Optional[str], Form()] = "",
     access_token: Optional[str] = Cookie(default=None),
 ):
-    """Ask a question and get RAG response."""
+    """Initiate a question and return the SSE skeleton."""
     user = await get_current_user_from_cookie(request, session, access_token)
     if not user:
         return HTMLResponse(content="Please log in", status_code=401)
 
     user_settings = get_user_settings_for_user(session, user)
     note_service = NoteService(session)
+    ask_id = uuid.uuid4().hex[:8]
 
     try:
         results = await note_service.search_notes_semantic(
-            user_id=user.id, query=question, user_settings=user_settings, limit=5
+            user_id=user.id, query=q, user_settings=user_settings, limit=5
         )
 
-        if not results:
-            return templates.TemplateResponse(
-                "components/chat_message.html",
-                {
-                    "request": request,
-                    "question": question,
-                    "answer": "I couldn't find any relevant notes to answer your question. Try recording more voice notes!",
-                    "sources": [],
-                },
-            )
+        # Store context for the SSE stream
+        chat_contexts[ask_id] = {
+            "question": q,
+            "results": results,
+            "user_id": user.id,
+            "settings": {
+                "url": user_settings.ollama_url,
+                "model": user_settings.ollama_model,
+                "embedding_model": user_settings.ollama_embedding_model,
+                "api_key": user_settings.ollama_api_key,
+            }
+        }
 
-        ollama = get_ollama_service(
-            base_url=user_settings.ollama_url,
-            model=user_settings.ollama_model,
-            embedding_model=user_settings.ollama_embedding_model,
-            api_key=user_settings.ollama_api_key,
-        )
-        answer = await ollama.answer_question(question, results)
-
+        # Return the initial skeleton with SSE connect
         return templates.TemplateResponse(
-            "components/chat_message.html",
-            {"request": request, "question": question, "answer": answer, "sources": results},
+            "components/chat_message_skeleton.html",
+            {
+                "request": request,
+                "question": q,
+                "ask_id": ask_id
+            }
         )
+
     except Exception as e:
+        logger.exception(f"Error in ask_question: {e}")
         return templates.TemplateResponse(
             "components/chat_message.html",
             {
                 "request": request,
-                "question": question,
-                "answer": f"Sorry, I encountered an error: {str(e)}. Make sure Ollama is running.",
+                "question": q,
+                "answer": f"Sorry, I encountered an error: {str(e)}",
                 "sources": [],
             },
         )
+
+
+@router.get("/web/ask/stream/{ask_id}")
+async def ask_stream(
+    ask_id: str, 
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """SSE stream for AI response."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return Response(status_code=401)
+
+    context = chat_contexts.get(ask_id)
+    if not context or context["user_id"] != user.id:
+        return StreamingResponse(iter(["data: <p class='text-sm italic'>Session expired. Please try asking again.</p>\n\n"]), media_type="text/event-stream")
+
+    async def event_generator():
+        logger.info(f"SSE START: ask_id={ask_id}")
+        
+        def sse_message(data: str):
+            msg = "".join(f"data: {line}\n" for line in data.split("\n")) + "\n"
+            return msg
+
+        try:
+            # 1. Check if we have results
+            if not context.get("results"):
+                logger.warning(f"SSE NO RESULTS: ask_id={ask_id}")
+                error_html = f'<p hx-swap-oob="outerHTML:#ai-response-{ask_id}" class="text-sm italic" style="color: var(--color-text-secondary);">I couldn\'t find any relevant notes to answer your question.</p>'
+                yield sse_message(error_html)
+                return
+            
+            logger.info(f"SSE PROMPT: ask_id={ask_id}, model={context['settings']['model']}")
+
+            ollama = get_ollama_service(
+                base_url=context["settings"]["url"],
+                model=context["settings"]["model"],
+                embedding_model=context["settings"]["embedding_model"],
+                api_key=context["settings"]["api_key"],
+            )
+
+            # 2. Stream the response from Ollama
+            first_chunk = True
+            full_response = ""
+            try:
+                async for chunk in ollama.answer_question_stream(context["question"], context["results"]):
+                    full_response += chunk
+                    
+                    # Sanitize for SSE data format (replace raw newlines with entity )
+                    # This ensures we don't break the protocol while preserving them in the HTML
+                    # HTMX will insert these into the whitespace-pre-wrap container
+                    safe_chunk = chunk.replace('\n', '&#10;')
+                    
+                    if first_chunk:
+                        logger.info(f"SSE FIRST CHUNK: ask_id={ask_id}")
+                        # Replace the entire placeholder with the start of the response
+                        oob = f'<div id="ai-response-{ask_id}" hx-swap-oob="outerHTML:#ai-response-{ask_id}" class="whitespace-pre-wrap leading-relaxed text-xl font-medium" style="color: var(--color-text-primary);">{safe_chunk}</div>'
+                        yield sse_message(oob)
+                        first_chunk = False
+                    else:
+                        yield sse_message(f'<span hx-swap-oob="beforeend:#ai-response-{ask_id}">{safe_chunk}</span>')
+                    
+                    await asyncio.sleep(0.01)
+                
+                logger.info(f"SSE OLLAMA COMPLETE: ask_id={ask_id}")
+            except Exception as e:
+                logger.error(f"Error streaming response: {e}")
+                err_html = f'<span hx-swap-oob="beforeend:#ai-response-{ask_id}" class="text-red-500"> (Error: {str(e)})</span>'
+                yield sse_message(err_html)
+
+            # 3. Finalize and send sources
+            sources_html = templates.get_template("components/chat_sources_partial.html").render({
+                "request": request,
+                "sources": context["results"]
+            })
+            
+            # Show the sources container and swap in the notes
+            oob_sources = f'<div id="ai-sources-{ask_id}" hx-swap-oob="outerHTML:#ai-sources-{ask_id}" class="mt-8 pt-8 border-t" style="border-color: var(--color-border);">{sources_html}</div>'
+            yield sse_message(oob_sources)
+            
+            # 4. Final OOB to remove SSE connection attributes to prevent reconnection loops
+            # We replace the outer container with one that looks the same but has no SSE attributes
+            final_container = f'<div id="ai-container-{ask_id}" hx-swap-oob="true" class="w-full"></div>'
+            yield sse_message(final_container)
+
+            # Clean up cache
+            if ask_id in chat_contexts:
+                del chat_contexts[ask_id]
+            
+            logger.info(f"SSE stream complete for ask_id={ask_id}")
+            
+        except Exception as e:
+            logger.error(f"SSE Outer Error for ask_id={ask_id}: {e}")
+
+    return StreamingResponse(
+        event_generator(), 
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 # ============= Settings Helpers =============

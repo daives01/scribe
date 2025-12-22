@@ -58,7 +58,7 @@
                 hx-on::before-request="this.querySelector('button[type=submit]').disabled = true"
                 hx-on::after-request="this.reset(); this.querySelector('button[type=submit]').disabled = false"
                 class="flex gap-3">
-                <input type="text" name="question" placeholder="Ask a question about your notes..."
+                <input type="text" name="q" placeholder="Ask a question about your notes..."
                     class="flex-1 px-5 py-3 rounded-xl border text-lg"
                     style="border-color: var(--color-border); background-color: var(--color-bg-secondary);" required
                     autofocus />

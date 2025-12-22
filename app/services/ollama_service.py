@@ -130,6 +130,7 @@ class OllamaService:
 
                 response.raise_for_status()
                 data = response.json()
+                logger.info(f"Ollama response received. Model: {self.embedding_model}")
 
                 # Newer /api/embed returns "embeddings", legacy /api/embeddings returns "embedding"
                 if "embeddings" in data:
@@ -145,6 +146,7 @@ class OllamaService:
                     else:
                         raise ValueError("No embedding returned from Ollama")
 
+                logger.info(f"Successfully generated embedding: {embedding.shape} {embedding.dtype}")
                 return serialize_vector(embedding)
 
             except httpx.HTTPStatusError as e:
@@ -252,6 +254,56 @@ Answer:"""
             response.raise_for_status()
             data = response.json()
             return data.get("response", "").strip()
+
+    async def answer_question_stream(
+        self, question: str, context_notes: list[Note]
+    ):
+        """
+        Answer a question using RAG with provided notes as context, streaming the response.
+        """
+        # Build context from notes
+        context_parts = []
+        for i, note in enumerate(context_notes, 1):
+            created_str = note.created_at.strftime('%Y-%m-%d') if hasattr(note.created_at, 'strftime') else str(note.created_at)
+            context_parts.append(
+                f"Note {i} ({created_str}):\n{note.raw_transcript}"
+            )
+        context = "\n\n---\n\n".join(context_parts)
+
+        prompt = f"""You are a helpful assistant answering questions based on the user's personal voice notes.
+Use the following notes as context to answer the question. If the answer cannot be found in the notes, say so.
+
+Context Notes:
+{context}
+
+Question: {question}
+
+Answer:"""
+
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                f"{self.base_url}/api/generate",
+                headers=self._get_headers(),
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": True,
+                },
+                timeout=120.0,
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if "response" in data:
+                            yield data["response"]
+                        if data.get("done"):
+                            break
+                    except json.JSONDecodeError:
+                        continue
 
 
 def get_ollama_service(

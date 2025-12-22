@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # App
     app_name: str = "Scribe"
-    debug: bool = False
+    debug: bool = True
 
     # Security
     secret_key: str = "change-me-in-production"

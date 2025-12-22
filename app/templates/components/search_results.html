@@ -1,55 +1,52 @@
-<div class="p-5 rounded-xl space-y-4" style="background-color: var(--color-bg-secondary);">
-    <div class="flex items-center justify-between">
-        <h3 class="font-semibold flex items-center gap-2">
-            <svg class="w-5 h-5" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            Search Results ({{ results|length }})
-        </h3>
-        <button onclick="document.getElementById('search-results').innerHTML = ''"
-            class="text-sm px-3 py-1 rounded-lg transition hover:opacity-70"
-            style="color: var(--color-text-secondary); background-color: var(--color-bg-tertiary);">
-            Clear
-        </button>
-    </div>
+<div class="p-2 rounded-2xl shadow-xl border-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+    style="background-color: var(--color-bg-secondary); border-color: var(--color-border);">
 
-    {% if results %}
-    <div class="space-y-2">
+    {% if error %}
+    <div class="p-4 text-sm flex items-center gap-3" style="color: var(--color-error);">
+        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Error: {{ error }}</span>
+    </div>
+    {% elif results %}
+    <div class="flex items-center justify-between px-3 py-2 border-b mb-1" style="border-color: var(--color-border);">
+        <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-text-tertiary);">Quick
+            Suggestions</span>
+        <button onclick="document.getElementById('search-results').innerHTML = ''"
+            class="text-xs hover:text-accent transition"> Close </button>
+    </div>
+    <div class="max-h-[400px] overflow-y-auto">
         {% for note in results %}
         <div hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main"
-            class="p-4 rounded-lg cursor-pointer hover:shadow-sm transition flex items-start justify-between gap-4"
-            style="background-color: var(--color-bg-tertiary);">
-            <div class="flex-1 min-w-0">
-                <p class="font-medium truncate">{{ note.summary or note.raw_transcript[:60] }}</p>
-                {% if note.raw_transcript and note.summary %}
-                <p class="text-sm mt-1 line-clamp-2" style="color: var(--color-text-secondary);">
-                    {{ note.raw_transcript[:100] }}{% if note.raw_transcript|length > 100 %}...{% endif %}
-                </p>
-                {% endif %}
-                <div class="flex items-center gap-3 mt-2 text-xs" style="color: var(--color-text-tertiary);">
-                    {% if note.tag %}
-                    <span class="tag-badge text-xs py-0.5 px-2">{{ note.tag }}</span>
-                    {% endif %}
-                    <span>{{ note.created_at.strftime('%b %d, %Y') }}</span>
-                </div>
+            onclick="document.getElementById('search-results').innerHTML = ''"
+            class="p-3 rounded-xl cursor-pointer hover:bg-tertiary transition flex items-start gap-3 group">
+            <div class="p-2 rounded-lg bg-secondary group-hover:bg-primary transition shadow-sm">
+                <svg class="w-4 h-4" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
             </div>
-            <svg class="w-5 h-5 shrink-0" style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
+            <div class="flex-1 min-w-0">
+                <p class="font-semibold text-sm truncate">{{ note.summary or note.raw_transcript[:60] }}</p>
+                <p class="text-xs mt-0.5 line-clamp-1 opacity-60">
+                    {{ note.raw_transcript[:100] }}
+                </p>
+            </div>
+            <div class="text-[10px] whitespace-nowrap opacity-40 mt-1">
+                {{ note.created_at.strftime('%b %d') }}
+            </div>
         </div>
         {% endfor %}
     </div>
+    <div class="p-2 border-t mt-1" style="border-color: var(--color-border);">
+        <div class="text-[11px] text-center opacity-50">Tip: Press <span
+                class="font-bold px-1 rounded bg-tertiary">Enter</span> to ask AI about these notes</div>
+    </div>
     {% else %}
-    <div class="text-center py-8">
-        <svg class="w-12 h-12 mx-auto mb-3" style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p style="color: var(--color-text-secondary);">No notes found matching your search.</p>
+    <div class="p-8 text-center">
+        <p class="text-sm opacity-50">No matching notes found.</p>
     </div>
     {% endif %}
 </div>

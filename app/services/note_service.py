@@ -188,6 +188,7 @@ class NoteService:
 
         # Generate embedding for query
         query_embedding = await ollama.generate_embedding(query)
+        logger.info(f"Generated search embedding for query '{query}': {len(query_embedding)} bytes")
 
         # Use raw SQL for vector search with sqlite-vec
         sql = text("""
@@ -195,33 +196,37 @@ class NoteService:
                    error_message, created_at, updated_at, user_id, audio_path, embedding,
                    vec_distance_cosine(embedding, :query_vec) as distance
             FROM notes
-            WHERE user_id = :user_id AND embedding IS NOT NULL
+            WHERE user_id = :user_id 
+              AND embedding IS NOT NULL 
+              AND length(embedding) = :vec_len
             ORDER BY distance ASC
             LIMIT :limit
         """)
 
-        result = self.session.execute(
-            sql, {"query_vec": query_embedding, "user_id": user_id, "limit": limit}
-        )
+        try:
+            # Execute and get rows as mappings
+            result = self.session.execute(
+                sql, {
+                    "query_vec": query_embedding, 
+                    "user_id": user_id, 
+                    "limit": limit,
+                    "vec_len": len(query_embedding)
+                }
+            )
+            rows = result.all()
+        except Exception as e:
+            logger.error(f"Error executing semantic search SQL: {e}")
+            raise e
 
         # Convert to Note objects
         notes = []
-        for row in result:
-            note = Note(
-                id=row.id,
-                user_id=row.user_id,
-                raw_transcript=row.raw_transcript,
-                summary=row.summary,
-                tag=row.tag,
-                processing_status=row.processing_status,
-                error_message=row.error_message,
-                created_at=row.created_at,
-                updated_at=row.updated_at,
-                audio_path=row.audio_path,
-                embedding=row.embedding,
-            )
+        for row in rows:
+            # Note.model_validate handles type conversion (e.g. str -> datetime)
+            # and ignores extra fields like 'distance'
+            note = Note.model_validate(dict(row._mapping))
             notes.append(note)
 
+        logger.info(f"Semantic search found {len(notes)} results")
         return notes
 
     async def get_similar_notes(
@@ -242,7 +247,10 @@ class NoteService:
         # Get the source note
         note = self.get_note(note_id, user_id)
         if not note.embedding:
+            logger.warning(f"Note {note_id} has no embedding for similarity search")
             return []
+        
+        logger.info(f"Finding similar notes for note {note_id}, embedding size: {len(note.embedding)} bytes")
 
         # Use the note's embedding for search
         sql = text("""
@@ -250,37 +258,35 @@ class NoteService:
                    error_message, created_at, updated_at, user_id, audio_path, embedding,
                    vec_distance_cosine(embedding, :query_vec) as distance
             FROM notes
-            WHERE user_id = :user_id AND embedding IS NOT NULL AND id != :note_id
+            WHERE user_id = :user_id 
+              AND embedding IS NOT NULL 
+              AND id != :note_id
+              AND length(embedding) = :vec_len
             ORDER BY distance ASC
             LIMIT :limit
         """)
 
-        result = self.session.execute(
-            sql,
-            {
-                "query_vec": note.embedding,
-                "user_id": user_id,
-                "note_id": note_id,
-                "limit": limit,
-            },
-        )
+        try:
+            result = self.session.execute(
+                sql,
+                {
+                    "query_vec": note.embedding,
+                    "user_id": user_id,
+                    "note_id": note_id,
+                    "limit": limit,
+                    "vec_len": len(note.embedding),
+                },
+            )
+            rows = result.all()
+        except Exception as e:
+            logger.error(f"Error executing similar notes SQL: {e}")
+            raise e
 
         # Convert to Note objects
         notes = []
-        for row in result:
-            similar_note = Note(
-                id=row.id,
-                user_id=row.user_id,
-                raw_transcript=row.raw_transcript,
-                summary=row.summary,
-                tag=row.tag,
-                processing_status=row.processing_status,
-                error_message=row.error_message,
-                created_at=row.created_at,
-                updated_at=row.updated_at,
-                audio_path=row.audio_path,
-                embedding=row.embedding,
-            )
+        for row in rows:
+            similar_note = Note.model_validate(dict(row._mapping))
             notes.append(similar_note)
 
+        logger.info(f"Found {len(notes)} similar notes for note {note_id}")
         return notes

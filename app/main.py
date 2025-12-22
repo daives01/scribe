@@ -50,23 +50,7 @@ app.add_middleware(
 )
 
 
-@app.middleware("http")
-async def diagnostic_middleware(request: Request, call_next):
-    """Log request details for debugging."""
-    print(f"\n[DEBUG] {request.method} {request.url}")
-    # Print headers but obscure the Authorization token for security
-    headers = dict(request.headers)
-    if "authorization" in headers:
-        headers["authorization"] = "Bearer ********"
-    print(f"[DEBUG] Headers: {headers}")
-    
-    try:
-        response = await call_next(request)
-        print(f"[DEBUG] Response: {response.status_code}")
-        return response
-    except Exception as e:
-        print(f"[DEBUG] Request error: {str(e)}")
-        raise
+# Static files and routers follow...
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
