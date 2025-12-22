@@ -28,5 +28,8 @@ class Settings(BaseSettings):
     # Whisper
     whisper_model: str = "small"
 
+    # Base URL for notifications (used for clickable HA notifications)
+    base_url: str = "http://localhost:8000"
+
 
 settings = Settings()

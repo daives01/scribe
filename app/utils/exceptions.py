@@ -68,3 +68,18 @@ class ProcessingError(VoiceNotesException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=self.detail,
         )
+
+
+class ServiceError(VoiceNotesException):
+    """Raised when external service calls fail."""
+
+    def __init__(self, detail: str = "External service error"):
+        self.detail = detail
+        super().__init__(detail)
+
+    def to_http_exception(self) -> HTTPException:
+        """Convert to FastAPI HTTPException."""
+        return HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=self.detail,
+        )

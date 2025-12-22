@@ -1,9 +1,10 @@
 """Ollama service for LLM and embedding operations."""
 
-from datetime import datetime, UTC
+from datetime import datetime
 import json
 import logging
 from typing import Dict, Union
+
 
 import httpx
 import numpy as np
@@ -176,7 +177,7 @@ class OllamaService:
             Dict with "summary" and "tag" keys
         """
         tags_str = ", ".join(available_tags)
-        current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         prompt = f"""Current system time: {current_time}
 
 Analyze this transcript and determine:
@@ -221,10 +222,8 @@ JSON response:"""
                 notification_time = None
                 if timestamp and timestamp != "null":
                     try:
-                        # Parse ISO format timestamp to datetime
-                        notification_time = datetime.fromisoformat(
-                            timestamp.replace("Z", "+00:00")
-                        )
+                        # Parse ISO format timestamp to datetime (local time)
+                        notification_time = datetime.fromisoformat(timestamp)
                     except (ValueError, TypeError):
                         logger.warning(f"Failed to parse timestamp: {timestamp}")
 

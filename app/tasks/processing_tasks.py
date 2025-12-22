@@ -11,8 +11,10 @@ from sqlmodel import Session, select
 from app.database import engine
 from app.models.note import Note
 from app.models.user import UserSettings
+from app.scheduler import get_scheduler
 from app.services.ollama_service import get_ollama_service
 from app.services.transcription_service import transcription_service
+from app.tasks.notification_tasks import send_note_notification
 from app.utils.events import event_manager
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,26 @@ async def _get_user_settings(session: Session, user_id: int) -> UserSettings:
         # Return default settings
         return UserSettings(user_id=user_id)
     return settings
+
+
+def _schedule_notification_if_needed(note: Note) -> None:
+    """Schedule a notification for the note if timestamp is set and in the future."""
+    if note.notification_timestamp and note.notification_timestamp > datetime.now():
+        try:
+            scheduler = get_scheduler()
+            scheduler.add_job(
+                send_note_notification,
+                "date",
+                run_date=note.notification_timestamp,
+                args=[note.id],
+                id=f"note_notification_{note.id}",
+                replace_existing=True,
+            )
+            logger.info(
+                f"Scheduled notification for note {note.id} at {note.notification_timestamp}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to schedule notification for note {note.id}: {e}")
 
 
 async def process_new_note(note_id: int) -> None:
@@ -93,6 +115,8 @@ async def process_new_note(note_id: int) -> None:
             note.updated_at = datetime.now(UTC)
             session.add(note)
             session.commit()
+
+            _schedule_notification_if_needed(note)
 
             await event_manager.broadcast(
                 note.user_id, f"note-status-{note.id}", "completed"
@@ -172,6 +196,8 @@ async def reprocess_note(note_id: int) -> None:
             note.updated_at = datetime.now(UTC)
             session.add(note)
             session.commit()
+
+            _schedule_notification_if_needed(note)
 
             await event_manager.broadcast(
                 note.user_id, f"note-status-{note.id}", "completed"

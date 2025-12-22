@@ -5,7 +5,11 @@ import json
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUserDep, SessionDep, UserSettingsDep
-from app.schemas.settings import ModelsResponse, UserSettingsResponse, UserSettingsUpdate
+from app.schemas.settings import (
+    ModelsResponse,
+    UserSettingsResponse,
+    UserSettingsUpdate,
+)
 from app.services.ollama_service import get_ollama_service
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -27,6 +31,9 @@ def get_settings(user_settings: UserSettingsDep) -> UserSettingsResponse:
         ollama_embedding_model=user_settings.ollama_embedding_model,
         ollama_api_key=user_settings.ollama_api_key,
         custom_tags=custom_tags,
+        homeassistant_url=user_settings.homeassistant_url,
+        homeassistant_token=user_settings.homeassistant_token,
+        homeassistant_device=user_settings.homeassistant_device,
     )
 
 
@@ -55,6 +62,15 @@ def update_settings(
     if update_data.custom_tags is not None:
         user_settings.custom_tags = json.dumps(update_data.custom_tags)
 
+    if update_data.homeassistant_url is not None:
+        user_settings.homeassistant_url = update_data.homeassistant_url
+
+    if update_data.homeassistant_token is not None:
+        user_settings.homeassistant_token = update_data.homeassistant_token
+
+    if update_data.homeassistant_device is not None:
+        user_settings.homeassistant_device = update_data.homeassistant_device
+
     session.add(user_settings)
     session.commit()
     session.refresh(user_settings)
@@ -70,6 +86,9 @@ def update_settings(
         ollama_embedding_model=user_settings.ollama_embedding_model,
         ollama_api_key=user_settings.ollama_api_key,
         custom_tags=custom_tags,
+        homeassistant_url=user_settings.homeassistant_url,
+        homeassistant_token=user_settings.homeassistant_token,
+        homeassistant_device=user_settings.homeassistant_device,
     )
 
 

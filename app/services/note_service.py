@@ -1,17 +1,15 @@
 """Note service for CRUD operations and search."""
 
-import json
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import text
+from sqlalchemy import desc, text
 from sqlmodel import Session, func, select
 
 from app.models.note import Note
 from app.models.user import UserSettings
-from app.services.ollama_service import OllamaService, get_ollama_service
+from app.services.ollama_service import get_ollama_service
 from app.utils.exceptions import NotFoundError
-from app.utils.vector import serialize_vector
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +89,7 @@ class NoteService:
         statement = (
             select(Note)
             .where(Note.user_id == user_id)
-            .order_by(Note.created_at.desc())
+            .order_by(desc(Note.created_at))
             .offset(skip)
             .limit(limit)
         )
@@ -99,7 +97,11 @@ class NoteService:
         return notes, total
 
     def update_note(
-        self, note_id: int, user_id: int, raw_transcript: str | None = None, tag: str | None = None
+        self,
+        note_id: int,
+        user_id: int,
+        raw_transcript: str | None = None,
+        tag: str | None = None,
     ) -> Note:
         """
         Update a note's content.
@@ -151,6 +153,7 @@ class NoteService:
         # Delete audio file if it exists
         if note.audio_path:
             from pathlib import Path
+
             audio_path = Path(note.audio_path)
             try:
                 if audio_path.exists():
@@ -188,30 +191,35 @@ class NoteService:
 
         # Generate embedding for query
         query_embedding = await ollama.generate_embedding(query)
-        logger.info(f"Generated search embedding for query '{query}': {len(query_embedding)} bytes")
+        logger.info(
+            f"Generated search embedding for query '{query}': {len(query_embedding)} bytes"
+        )
 
         # Use raw SQL for vector search with sqlite-vec
-        sql = text("""
+        sql = text(
+            """
             SELECT id, raw_transcript, summary, tag, processing_status,
                    error_message, created_at, updated_at, user_id, audio_path, embedding,
                    vec_distance_cosine(embedding, :query_vec) as distance
             FROM notes
-            WHERE user_id = :user_id 
-              AND embedding IS NOT NULL 
+            WHERE user_id = :user_id
+              AND embedding IS NOT NULL
               AND length(embedding) = :vec_len
             ORDER BY distance ASC
             LIMIT :limit
-        """)
+        """
+        )
 
         try:
             # Execute and get rows as mappings
             result = self.session.execute(
-                sql, {
-                    "query_vec": query_embedding, 
-                    "user_id": user_id, 
+                sql,
+                {
+                    "query_vec": query_embedding,
+                    "user_id": user_id,
                     "limit": limit,
-                    "vec_len": len(query_embedding)
-                }
+                    "vec_len": len(query_embedding),
+                },
             )
             rows = result.all()
         except Exception as e:
@@ -249,22 +257,26 @@ class NoteService:
         if not note.embedding:
             logger.warning(f"Note {note_id} has no embedding for similarity search")
             return []
-        
-        logger.info(f"Finding similar notes for note {note_id}, embedding size: {len(note.embedding)} bytes")
+
+        logger.info(
+            f"Finding similar notes for note {note_id}, embedding size: {len(note.embedding)} bytes"
+        )
 
         # Use the note's embedding for search
-        sql = text("""
+        sql = text(
+            """
             SELECT id, raw_transcript, summary, tag, processing_status,
                    error_message, created_at, updated_at, user_id, audio_path, embedding,
                    vec_distance_cosine(embedding, :query_vec) as distance
             FROM notes
-            WHERE user_id = :user_id 
-              AND embedding IS NOT NULL 
+            WHERE user_id = :user_id
+              AND embedding IS NOT NULL
               AND id != :note_id
               AND length(embedding) = :vec_len
             ORDER BY distance ASC
             LIMIT :limit
-        """)
+        """
+        )
 
         try:
             result = self.session.execute(

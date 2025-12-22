@@ -27,11 +27,11 @@
                 Failed
                 {% endif %}
             </span>
-            
+
             {% if note.processing_status == "failed" %}
             <div class="flex gap-1">
                 <!-- Retry Button -->
-                <button hx-post="/api/notes/{{ note.id }}/retry" 
+                <button hx-post="/api/notes/{{ note.id }}/retry"
                     hx-swap="none"
                     class="btn-small btn-retry"
                     title="Retry processing">
@@ -41,7 +41,7 @@
                     </svg>
                 </button>
                 <!-- Delete Button -->
-                <button hx-delete="/api/notes/{{ note.id }}" 
+                <button hx-delete="/api/notes/{{ note.id }}"
                     hx-confirm="Delete this failed note? This action cannot be undone."
                     hx-target="closest .card"
                     class="btn-small btn-delete"
@@ -54,7 +54,7 @@
             </div>
             {% endif %}
         </div>
-        
+
         {% if note.processing_status == "failed" and note.error_message %}
         <div class="text-xs mt-2" style="color: var(--color-error);">
             {{ note.error_message[:50] }}{% if note.error_message|length > 50 %}...{% endif %}
@@ -99,7 +99,7 @@
                 </span>
             </span>
             {% endif %}
-            
+
             {% if note.tag %}
             <span class="tag-badge">
                 {{ note.tag }}

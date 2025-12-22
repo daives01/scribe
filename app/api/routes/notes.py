@@ -1,10 +1,8 @@
 """Notes CRUD endpoints."""
 
-import json
-import tempfile
 import uuid
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import (
     APIRouter,
@@ -12,7 +10,6 @@ from fastapi import (
     File,
     HTTPException,
     Query,
-    Request,
     Response,
     UploadFile,
     status,
@@ -52,7 +49,8 @@ async def upload_voice_note(
     The note is created immediately with 'pending' status, and processing
     happens in the background. Poll the note endpoint to check status.
     """
-    print(f"\n[DEBUG] Reached upload_voice_note handler")
+    assert current_user.id is not None
+    print("\n[DEBUG] Reached upload_voice_note handler")
     print(f"[DEBUG] audio_file filename: {audio_file.filename}")
     print(f"[DEBUG] audio_file content_type: {audio_file.content_type}")
     # Read file content
@@ -75,10 +73,13 @@ async def upload_voice_note(
     )
 
     # Trigger background processing
+    assert note.id is not None
     background_tasks.add_task(process_new_note, note.id)
 
     # Broadcast event
-    await event_manager.broadcast(current_user.id, "note-created", str(note.id))
+    await event_manager.broadcast(
+        cast(int, current_user.id), "note-created", str(note.id)
+    )
 
     return NoteResponse.model_validate(note)
 
@@ -93,6 +94,7 @@ def list_notes(
     """
     List all notes for the current user with pagination.
     """
+    assert current_user.id is not None
     note_service = NoteService(session)
     notes, total = note_service.list_notes(current_user.id, skip=skip, limit=limit)
     return NoteListResponse(
@@ -110,6 +112,7 @@ def get_note(
     """
     Get a single note by ID.
     """
+    assert current_user.id is not None
     note_service = NoteService(session)
     try:
         note = note_service.get_note(note_id, current_user.id)
@@ -132,6 +135,7 @@ async def update_note(
     If the transcript is changed, the note will be reprocessed
     to generate new summary, tag, and embedding.
     """
+    assert current_user.id is not None
     note_service = NoteService(session)
     try:
         note = note_service.update_note(
@@ -143,7 +147,7 @@ async def update_note(
 
         # If transcript was updated, trigger reprocessing
         if update_data.raw_transcript is not None:
-            background_tasks.add_task(reprocess_note, note.id)
+            background_tasks.add_task(reprocess_note, cast(int, note.id))
 
         return NoteResponse.model_validate(note)
     except NotFoundError as e:
@@ -160,6 +164,7 @@ async def retry_failed_note(
     """
     Retry processing a failed note.
     """
+    assert current_user.id is not None
     note_service = NoteService(session)
     try:
         note = note_service.get_note(note_id, current_user.id)
@@ -177,11 +182,11 @@ async def retry_failed_note(
         session.commit()
 
         # Trigger background reprocessing
-        background_tasks.add_task(reprocess_note, note.id)
+        background_tasks.add_task(reprocess_note, cast(int, note.id))
 
         # Broadcast status update for SSE
         await event_manager.broadcast(
-            current_user.id, f"note-status-{note.id}", "processing"
+            cast(int, current_user.id), f"note-status-{note.id}", "processing"
         )
 
         return {"message": "Note reprocessing started"}
@@ -199,6 +204,7 @@ async def delete_note(
     """
     Delete a note.
     """
+    assert current_user.id is not None
     note_service = NoteService(session)
     try:
         note_service.delete_note(note_id, current_user.id)
@@ -220,10 +226,11 @@ async def get_similar_notes(
 
     Uses vector similarity to find related notes.
     """
+    assert current_user.id is not None
     note_service = NoteService(session)
     try:
         similar = await note_service.get_similar_notes(
-            note_id, current_user.id, user_settings, limit=5
+            note_id, cast(int, current_user.id), user_settings, limit=5
         )
         return SimilarNotesResponse(
             similar=[NoteResponse.model_validate(n) for n in similar]

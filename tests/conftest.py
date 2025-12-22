@@ -1,7 +1,7 @@
 """Pytest configuration and fixtures."""
 
-import os
 from collections.abc import Generator
+from typing import cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,7 +9,6 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from app.api.deps import get_db
-from app.database import create_db_and_tables
 from app.main import app
 from app.models import Note, User, UserSettings
 from app.services.auth_service import create_access_token, get_password_hash
@@ -62,7 +61,7 @@ def test_user_fixture(session: Session) -> User:
     session.refresh(user)
 
     # Create default settings
-    settings = UserSettings(user_id=user.id)
+    settings = UserSettings(user_id=cast(int, user.id))
     session.add(settings)
     session.commit()
 
@@ -72,7 +71,7 @@ def test_user_fixture(session: Session) -> User:
 @pytest.fixture(name="auth_headers")
 def auth_headers_fixture(test_user: User) -> dict[str, str]:
     """Create authentication headers for test user."""
-    token = create_access_token(test_user.id)
+    token = create_access_token(cast(int, test_user.id))
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -80,7 +79,7 @@ def auth_headers_fixture(test_user: User) -> dict[str, str]:
 def test_note_fixture(session: Session, test_user: User) -> Note:
     """Create a test note."""
     note = Note(
-        user_id=test_user.id,
+        user_id=cast(int, test_user.id),
         raw_transcript="This is a test note about Python programming.",
         summary="Test Python note",
         tag="Work",

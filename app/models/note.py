@@ -16,10 +16,10 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class Note(SQLModel, table=True):
+class Note(SQLModel, table=True):  # type: ignore
     """Voice note model with transcript and AI-generated metadata."""
 
-    __tablename__ = "notes"
+    __tablename__ = "notes"  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.deps import CurrentUserDep, SessionDep, UserSettingsDep
+from app.api.deps import CurrentUserIdDep, SessionDep, UserSettingsDep
 from app.schemas.note import NoteResponse
 from app.schemas.search import SearchRequest, SearchResponse
 from app.services.note_service import NoteService
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api", tags=["search"])
 async def semantic_search(
     request: SearchRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    user_id: CurrentUserIdDep,
     user_settings: UserSettingsDep,
 ) -> SearchResponse:
     """
@@ -24,7 +24,7 @@ async def semantic_search(
     """
     note_service = NoteService(session)
     results = await note_service.search_notes_semantic(
-        user_id=current_user.id,
+        user_id=user_id,
         query=request.query,
         user_settings=user_settings,
         limit=request.limit,

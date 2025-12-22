@@ -187,19 +187,61 @@
             </div>
         </div>
 
-        <div class="border-t pt-6 mt-6" style="border-color: var(--color-border);">
-            <div class="flex items-center gap-3 pb-4">
-                <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <div>
-                    <h2 class="text-lg font-semibold">Custom Tags</h2>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">Tags available for categorizing your
-                        notes</p>
-                </div>
-            </div>
+         <!-- Home Assistant Configuration -->
+         <div class="border-t pt-6 mt-6" style="border-color: var(--color-border);">
+             <div class="flex items-center gap-3 pb-4">
+                 <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+                 </svg>
+                 <div>
+                     <h2 class="text-lg font-semibold">Home Assistant Notifications</h2>
+                     <p class="text-sm" style="color: var(--color-text-secondary);">Receive push notifications on your mobile device</p>
+                 </div>
+             </div>
+
+             <div class="space-y-4">
+                 <div>
+                     <label class="block text-sm font-medium mb-2">Home Assistant URL</label>
+                     <input type="url" name="homeassistant_url" value="{{ settings.homeassistant_url or '' }}"
+                         placeholder="https://your-ha-instance.com" class="w-full px-4 py-3 rounded-lg border"
+                         style="border-color: var(--color-border);" />
+                     <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The URL of your Home Assistant instance</p>
+                 </div>
+
+                 <div>
+                     <label class="block text-sm font-medium mb-2">Access Token</label>
+                     <input type="password" name="homeassistant_token" value="{{ settings.homeassistant_token or '' }}"
+                         placeholder="••••••••" class="w-full px-4 py-3 rounded-lg border"
+                         style="border-color: var(--color-border);" />
+                     <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Long-lived access token from Home Assistant Settings > Devices & Services > Mobile App</p>
+                 </div>
+
+                 <div>
+                     <label class="block text-sm font-medium mb-2">Device Name</label>
+                     <input type="text" name="homeassistant_device" value="{{ settings.homeassistant_device or '' }}"
+                         placeholder="iphone" class="w-full px-4 py-3 rounded-lg border"
+                         style="border-color: var(--color-border);" />
+                     <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The device name configured in the Home Assistant Companion app (e.g., 'iphone', 'pixel')</p>
+                 </div>
+             </div>
+         </div>
+
+         <div class="border-t pt-6 mt-6" style="border-color: var(--color-border);">
+             <div class="flex items-center gap-3 pb-4">
+                 <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                         d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                 </svg>
+                 <div>
+                     <h2 class="text-lg font-semibold">Custom Tags</h2>
+                     <p class="text-sm" style="color: var(--color-text-secondary);">Tags available for categorizing your
+                         notes</p>
+                 </div>
+             </div>
 
             <div>
                 <label class="block text-sm font-medium mb-2">Tags (comma-separated)</label>

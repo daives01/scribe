@@ -3,7 +3,9 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -17,20 +19,22 @@ from app.api.routes import (
 )
 from app.config import settings
 from app.database import create_db_and_tables
+from app.scheduler import set_scheduler
 from app.services.ollama_service import get_ollama_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan events."""
-    # Startup
     create_db_and_tables()
-
-    # Ensure uploads directory exists
     Path("uploads").mkdir(exist_ok=True)
 
+    jobstore = SQLAlchemyJobStore(url=settings.database_url)
+    scheduler = AsyncIOScheduler(jobstores={"default": jobstore})
+    scheduler.start()
+    set_scheduler(scheduler)
+
     yield
-    # Shutdown (cleanup if needed)
+    scheduler.shutdown()
 
 
 app = FastAPI(

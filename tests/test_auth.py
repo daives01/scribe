@@ -96,7 +96,9 @@ def test_generate_api_token(client: TestClient, auth_headers):
 
     # Test using the token
     api_token = data["api_token"]
-    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {api_token}"})
+    response = client.get(
+        "/api/auth/me", headers={"Authorization": f"Bearer {api_token}"}
+    )
     assert response.status_code == 200
 
 
@@ -107,7 +109,9 @@ def test_revoke_api_token(client: TestClient, auth_headers):
     api_token = response.json()["api_token"]
 
     # Verify it works
-    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {api_token}"})
+    response = client.get(
+        "/api/auth/me", headers={"Authorization": f"Bearer {api_token}"}
+    )
     assert response.status_code == 200
 
     # Revoke it
@@ -115,7 +119,9 @@ def test_revoke_api_token(client: TestClient, auth_headers):
     assert response.status_code == 204
 
     # Verify it acts like it's revoked
-    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {api_token}"})
+    response = client.get(
+        "/api/auth/me", headers={"Authorization": f"Bearer {api_token}"}
+    )
     # NOTE: The current implementation of ApiToken logic checks DB for api_token match.
     # If revoked (set to None), it won't match "None" against the token string.
     assert response.status_code == 401

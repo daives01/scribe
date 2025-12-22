@@ -1,18 +1,15 @@
 """Web routes for HTMX frontend."""
 
-import asyncio
 import json
 import logging
-import uuid
-from typing import Annotated, Optional
+from typing import Annotated, Optional, cast
 
-from fastapi import APIRouter, Cookie, Depends, Form, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi import APIRouter, Cookie, Depends, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.api.deps import get_db
-from app.models.note import Note
 from app.models.user import User, UserSettings
 from app.services.auth_service import (
     create_access_token,
@@ -69,10 +66,11 @@ async def get_current_user_from_cookie(
 
 def get_user_settings_for_user(session: Session, user: User) -> UserSettings:
     """Get or create user settings."""
+    assert user.id is not None
     statement = select(UserSettings).where(UserSettings.user_id == user.id)
     settings = session.exec(statement).first()
     if not settings:
-        settings = UserSettings(user_id=user.id)
+        settings = UserSettings(user_id=cast(int, user.id))
         session.add(settings)
         session.commit()
         session.refresh(settings)
@@ -112,6 +110,7 @@ async def login_submit(
             },
         )
 
+    assert user.id is not None
     access_token = create_access_token(user.id)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
@@ -155,6 +154,7 @@ async def register_submit(
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
 
     settings = UserSettings(user_id=user.id)
     session.add(settings)
@@ -232,6 +232,9 @@ async def settings_page(
                 "ollama_embedding_model": user_settings.ollama_embedding_model,
                 "ollama_api_key": user_settings.ollama_api_key,
                 "custom_tags": custom_tags,
+                "homeassistant_url": user_settings.homeassistant_url,
+                "homeassistant_token": user_settings.homeassistant_token,
+                "homeassistant_device": user_settings.homeassistant_device,
             },
         },
     )
@@ -240,8 +243,9 @@ async def settings_page(
 # ============= API Token Routes =============
 
 
-@router.post("/web/api-token", response_class=HTMLResponse)
-async def generate_web_api_token(
+@router.get("/web/notes/{note_id}/similar", response_class=HTMLResponse)
+async def get_similar_notes_web(
+    note_id: int,
     request: Request,
     session: SessionDep,
     access_token: Optional[str] = Cookie(default=None),
@@ -250,214 +254,14 @@ async def generate_web_api_token(
     user = await get_current_user_from_cookie(request, session, access_token)
     if not user:
         return HTMLResponse(content="", status_code=401)
-
-    # Generate new token
-    import secrets
-
-    api_token = secrets.token_urlsafe(32)
-    user.api_token = api_token
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-
-    return HTMLResponse(
-        content=f"""
-        <div class="p-4 rounded-lg" style="background-color: var(--color-bg-tertiary);">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium">Your API Token</span>
-            <button
-              hx-delete="/web/api-token"
-              hx-target="#api-token-section"
-              hx-swap="innerHTML"
-              hx-confirm="Revoke this token? Any Siri shortcuts using it will stop working."
-              class="text-xs px-2 py-1 rounded"
-              style="color: var(--color-error); background-color: rgb(239 68 68 / 0.1);"
-            >
-              Revoke
-            </button>
-          </div>
-          <code class="block p-3 rounded text-sm break-all" style="background-color: var(--color-bg-primary);">{api_token}</code>
-        </div>
-        """
-    )
-
-
-@router.delete("/web/api-token", response_class=HTMLResponse)
-async def revoke_web_api_token(
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Revoke the API token (HTMX)."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="", status_code=401)
-
-    user.api_token = None
-    session.add(user)
-    session.commit()
-
-    return HTMLResponse(
-        content="""
-        <button
-          hx-post="/web/api-token"
-          hx-target="#api-token-section"
-          hx-swap="innerHTML"
-          class="w-full py-3 rounded-lg font-medium text-white transition flex items-center justify-center gap-2"
-          style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);"
-        >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-          </svg>
-          Generate API Token
-        </button>
-        """
-    )
-
-
-# ============= HTMX Partial Routes =============
-
-
-@router.get("/web/notes/recent", response_class=HTMLResponse)
-async def recent_notes(
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-    limit: int = 12,
-):
-    """Get recent notes as HTML cards."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="<p>Please log in</p>", status_code=401)
-
-    note_service = NoteService(session)
-    notes, total = note_service.list_notes(user.id, skip=0, limit=limit)
-    return templates.TemplateResponse(
-        "components/note_card.html",
-        {"request": request, "notes": notes, "total": total, "show_count": True},
-    )
-
-
-@router.get("/web/notes/{note_id}/card", response_class=HTMLResponse)
-async def note_card(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Get a single note card."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="", status_code=401)
-
-    note_service = NoteService(session)
-    try:
-        note = note_service.get_note(note_id, user.id)
-        return templates.TemplateResponse(
-            "components/note_card.html",
-            {"request": request, "notes": [note], "show_count": False},
-        )
-    except NotFoundError:
-        return HTMLResponse(content="", status_code=404)
-
-
-@router.get("/web/notes/{note_id}", response_class=HTMLResponse)
-async def note_detail(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Render note detail page."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return RedirectResponse(url="/login", status_code=303)
-
-    note_service = NoteService(session)
-    try:
-        note = note_service.get_note(note_id, user.id)
-        if note.processing_status != "completed":
-            return RedirectResponse(url="/", status_code=303)
-        return templates.TemplateResponse(
-            "note_detail.html",
-            {"request": request, "current_user": user, "note": note},
-        )
-    except NotFoundError:
-        return HTMLResponse(
-            content="<div class='text-center py-8'><p>Note not found</p></div>",
-            status_code=404,
-        )
-
-
-@router.get("/web/notes/{note_id}/content", response_class=HTMLResponse)
-async def note_content(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Get only the content part of a note detail page."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="", status_code=401)
-
-    note_service = NoteService(session)
-    try:
-        note = note_service.get_note(note_id, user.id)
-        return templates.TemplateResponse(
-            "partials/note_content.html",
-            {"request": request, "current_user": user, "note": note},
-        )
-    except NotFoundError:
-        return HTMLResponse(content="", status_code=404)
-
-
-@router.get("/web/notes/{note_id}/status", response_class=HTMLResponse)
-async def note_status(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Get note processing status badge."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="", status_code=401)
-
-    note_service = NoteService(session)
-    try:
-        note = note_service.get_note(note_id, user.id)
-        return templates.TemplateResponse(
-            "components/status_badge.html",
-            {
-                "request": request,
-                "note_id": note.id,
-                "status": note.processing_status,
-                "error_message": note.error_message,
-            },
-        )
-    except NotFoundError:
-        return HTMLResponse(content="", status_code=404)
-
-
-@router.get("/web/notes/{note_id}/similar", response_class=HTMLResponse)
-async def similar_notes(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Get similar notes as HTML cards."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="", status_code=401)
+    assert user.id is not None
 
     user_settings = get_user_settings_for_user(session, user)
     note_service = NoteService(session)
     logger.info(f"Finding similar notes for note_id={note_id}, user={user.username}")
 
     try:
-        note = note_service.get_note(note_id, user.id)
+        note = note_service.get_note(note_id, cast(int, user.id))
         if note.processing_status != "completed":
             return templates.TemplateResponse(
                 "components/similar_notes.html",
@@ -465,7 +269,7 @@ async def similar_notes(
             )
 
         notes = await note_service.get_similar_notes(
-            note_id, user.id, user_settings, limit=5
+            note_id, cast(int, user.id), user_settings, limit=5
         )
         return templates.TemplateResponse(
             "components/similar_notes.html", {"request": request, "notes": notes}
@@ -497,7 +301,7 @@ async def edit_note_field(
     note_service = NoteService(session)
 
     try:
-        note = note_service.get_note(note_id, user.id)
+        note = note_service.get_note(note_id, cast(int, user.id))
         try:
             available_tags = json.loads(user_settings.custom_tags)
         except (json.JSONDecodeError, TypeError):
@@ -535,7 +339,7 @@ async def search_notes(
 
     try:
         results = await note_service.search_notes_semantic(
-            user_id=user.id, query=q, user_settings=user_settings, limit=5
+            user_id=cast(int, user.id), query=q, user_settings=user_settings, limit=5
         )
         return templates.TemplateResponse(
             "components/search_results.html", {"request": request, "results": results}
@@ -657,6 +461,9 @@ async def update_settings_web(
     ollama_embedding_model: Annotated[str | None, Form()] = None,
     ollama_api_key: Annotated[str | None, Form()] = None,
     custom_tags: Annotated[str | None, Form()] = None,
+    homeassistant_url: Annotated[str | None, Form()] = None,
+    homeassistant_token: Annotated[str | None, Form()] = None,
+    homeassistant_device: Annotated[str | None, Form()] = None,
 ) -> HTMLResponse:
     """
     Update user settings (HTMX Form).
@@ -688,6 +495,21 @@ async def update_settings_web(
         # Split by comma and strip whitespace
         tags_list = [tag.strip() for tag in custom_tags.split(",") if tag.strip()]
         user_settings.custom_tags = json.dumps(tags_list)
+
+    if homeassistant_url is not None:
+        user_settings.homeassistant_url = (
+            homeassistant_url if homeassistant_url.strip() else None
+        )
+
+    if homeassistant_token is not None:
+        user_settings.homeassistant_token = (
+            homeassistant_token if homeassistant_token.strip() else None
+        )
+
+    if homeassistant_device is not None:
+        user_settings.homeassistant_device = (
+            homeassistant_device if homeassistant_device.strip() else None
+        )
 
     session.add(user_settings)
     session.commit()

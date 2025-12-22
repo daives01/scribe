@@ -15,10 +15,10 @@ if TYPE_CHECKING:
     from app.models.note import Note
 
 
-class User(SQLModel, table=True):
+class User(SQLModel, table=True):  # type: ignore
     """User account model."""
 
-    __tablename__ = "users"
+    __tablename__ = "users"  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
@@ -39,7 +39,7 @@ class User(SQLModel, table=True):
 class UserSettings(SQLModel, table=True):
     """Per-user settings for AI configuration."""
 
-    __tablename__ = "user_settings"
+    __tablename__ = "user_settings"  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", unique=True, index=True)
@@ -54,6 +54,11 @@ class UserSettings(SQLModel, table=True):
     custom_tags: str = Field(
         default='["Idea", "Todo", "Work", "Personal", "Reference"]'
     )
+
+    # Home Assistant integration for notifications
+    homeassistant_url: str | None = Field(default=None)
+    homeassistant_token: str | None = Field(default=None)
+    homeassistant_device: str | None = Field(default=None)
 
     # Relationships
     user: User = Relationship(back_populates="settings")

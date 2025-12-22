@@ -10,7 +10,11 @@ from sqlmodel import select
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.user import User, UserSettings
 from app.schemas.auth import ApiTokenResponse, Token, UserCreate, UserResponse
-from app.services.auth_service import create_access_token, get_password_hash, verify_password
+from app.services.auth_service import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -42,6 +46,7 @@ def register(user_data: UserCreate, session: SessionDep) -> Token:
     session.refresh(user)
 
     # Create default settings for the user
+    assert user.id is not None
     settings = UserSettings(user_id=user.id)
     session.add(settings)
     session.commit()
@@ -72,6 +77,7 @@ def login(
         )
 
     # Generate token
+    assert user.id is not None
     access_token = create_access_token(user.id)
     return Token(access_token=access_token)
 
@@ -85,7 +91,9 @@ def get_current_user_info(current_user: CurrentUserDep) -> UserResponse:
 
 
 @router.post("/api-token", response_model=ApiTokenResponse)
-def generate_api_token(current_user: CurrentUserDep, session: SessionDep) -> ApiTokenResponse:
+def generate_api_token(
+    current_user: CurrentUserDep, session: SessionDep
+) -> ApiTokenResponse:
     """
     Generate a new long-lived API token for mobile/Siri access.
 

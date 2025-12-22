@@ -25,6 +25,7 @@ def test_ask_requires_auth(client: TestClient):
 # Note: Full search tests require Ollama to be running
 # These are placeholder tests for the API structure
 
+
 @pytest.mark.skip(reason="Requires Ollama connection")
 def test_search_notes(client: TestClient, auth_headers, test_note):
     """Test semantic search."""
