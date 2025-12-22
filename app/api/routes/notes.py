@@ -1,14 +1,30 @@
 """Notes CRUD endpoints."""
 
+import json
 import tempfile
 import uuid
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 
 from app.api.deps import CurrentUserDep, SessionDep, UserSettingsDep
-from app.schemas.note import NoteListResponse, NoteResponse, NoteUpdate, SimilarNotesResponse
+from app.schemas.note import (
+    NoteListResponse,
+    NoteResponse,
+    NoteUpdate,
+    SimilarNotesResponse,
+)
 from app.services.note_service import NoteService
 from app.tasks.processing_tasks import process_new_note, reprocess_note
 from app.utils.events import event_manager
@@ -21,7 +37,9 @@ UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 
-@router.post("/upload", response_model=NoteResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/upload", response_model=NoteResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def upload_voice_note(
     audio_file: Annotated[UploadFile, File(description="Audio file to transcribe")],
     session: SessionDep,
@@ -132,13 +150,52 @@ async def update_note(
         raise e.to_http_exception()
 
 
+@router.post("/notes/{note_id}/retry", status_code=status.HTTP_202_ACCEPTED)
+async def retry_failed_note(
+    note_id: int,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """
+    Retry processing a failed note.
+    """
+    note_service = NoteService(session)
+    try:
+        note = note_service.get_note(note_id, current_user.id)
+
+        if note.processing_status != "failed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only failed notes can be retried",
+            )
+
+        # Update status to processing immediately
+        note.processing_status = "processing"
+        note.error_message = None
+        session.add(note)
+        session.commit()
+
+        # Trigger background reprocessing
+        background_tasks.add_task(reprocess_note, note.id)
+
+        # Broadcast status update for SSE
+        await event_manager.broadcast(
+            current_user.id, f"note-status-{note.id}", "processing"
+        )
+
+        return {"message": "Note reprocessing started"}
+    except NotFoundError as e:
+        raise e.to_http_exception()
+
+
 @router.delete("/notes/{note_id}", status_code=status.HTTP_200_OK)
 async def delete_note(
     note_id: int,
     session: SessionDep,
     current_user: CurrentUserDep,
     background_tasks: BackgroundTasks,
-) -> dict:
+) -> Response:
     """
     Delete a note.
     """

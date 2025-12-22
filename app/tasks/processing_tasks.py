@@ -43,11 +43,15 @@ async def process_new_note(note_id: int) -> None:
             note.processing_status = "transcribing"
             session.add(note)
             session.commit()
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "transcribing")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "transcribing"
+            )
 
             # Step 2: Transcribe audio (blocking, so run in thread)
             if note.audio_path and Path(note.audio_path).exists():
-                transcript = await asyncio.to_thread(transcription_service.transcribe_file, note.audio_path)
+                transcript = await asyncio.to_thread(
+                    transcription_service.transcribe_file, note.audio_path
+                )
                 note.raw_transcript = transcript
             elif not note.raw_transcript:
                 raise ValueError("No audio file or transcript available")
@@ -56,7 +60,9 @@ async def process_new_note(note_id: int) -> None:
             note.processing_status = "processing"
             session.add(note)
             session.commit()
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "processing")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "processing"
+            )
 
             # Get user settings for AI processing
             user_settings = await _get_user_settings(session, note.user_id)
@@ -70,9 +76,12 @@ async def process_new_note(note_id: int) -> None:
             # Step 4: Generate summary and tag
             available_tags = json.loads(user_settings.custom_tags)
 
-            summary_result = await ollama.generate_summary_and_tag(note.raw_transcript, available_tags)
+            summary_result = await ollama.generate_summary_and_tag(
+                note.raw_transcript, available_tags
+            )
             note.summary = summary_result.get("summary")
             note.tag = summary_result.get("tag")
+            note.notification_timestamp = summary_result.get("notification_timestamp")
 
             # Step 5: Generate embedding
             embedding = await ollama.generate_embedding(note.raw_transcript)
@@ -85,8 +94,12 @@ async def process_new_note(note_id: int) -> None:
             session.add(note)
             session.commit()
 
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "completed")
-            await event_manager.broadcast(note.user_id, f"note-processed-{note.id}", "completed")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "completed"
+            )
+            await event_manager.broadcast(
+                note.user_id, f"note-processed-{note.id}", "completed"
+            )
 
             logger.info(f"Successfully processed note {note_id}")
 
@@ -97,7 +110,9 @@ async def process_new_note(note_id: int) -> None:
             note.updated_at = datetime.now(UTC)
             session.add(note)
             session.commit()
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "failed")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "failed"
+            )
 
 
 async def reprocess_note(note_id: int) -> None:
@@ -123,7 +138,9 @@ async def reprocess_note(note_id: int) -> None:
             note.processing_status = "processing"
             session.add(note)
             session.commit()
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "processing")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "processing"
+            )
 
             # Get user settings for AI processing
             user_settings = await _get_user_settings(session, note.user_id)
@@ -138,9 +155,12 @@ async def reprocess_note(note_id: int) -> None:
             available_tags = json.loads(user_settings.custom_tags)
 
             # Generate new summary and tag
-            summary_result = await ollama.generate_summary_and_tag(note.raw_transcript, available_tags)
+            summary_result = await ollama.generate_summary_and_tag(
+                note.raw_transcript, available_tags
+            )
             note.summary = summary_result.get("summary")
             note.tag = summary_result.get("tag")
+            note.notification_timestamp = summary_result.get("notification_timestamp")
 
             # Generate new embedding
             embedding = await ollama.generate_embedding(note.raw_transcript)
@@ -153,8 +173,12 @@ async def reprocess_note(note_id: int) -> None:
             session.add(note)
             session.commit()
 
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "completed")
-            await event_manager.broadcast(note.user_id, f"note-processed-{note.id}", "completed")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "completed"
+            )
+            await event_manager.broadcast(
+                note.user_id, f"note-processed-{note.id}", "completed"
+            )
 
             logger.info(f"Successfully reprocessed note {note_id}")
 
@@ -165,4 +189,6 @@ async def reprocess_note(note_id: int) -> None:
             note.updated_at = datetime.now(UTC)
             session.add(note)
             session.commit()
-            await event_manager.broadcast(note.user_id, f"note-status-{note.id}", "failed")
+            await event_manager.broadcast(
+                note.user_id, f"note-status-{note.id}", "failed"
+            )

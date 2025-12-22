@@ -1,7 +1,9 @@
 """Ollama service for LLM and embedding operations."""
 
+from datetime import datetime, UTC
 import json
 import logging
+from typing import Dict, Union
 
 import httpx
 import numpy as np
@@ -103,7 +105,7 @@ class OllamaService:
                     json={"model": self.embedding_model, "input": text},
                     timeout=60.0,
                 )
-                
+
                 # If /api/embed is not found (404), fallback to legacy /api/embeddings
                 if response.status_code == 404 and "page not found" in response.text:
                     logger.info("Falling back to legacy /api/embeddings endpoint")
@@ -146,7 +148,9 @@ class OllamaService:
                     else:
                         raise ValueError("No embedding returned from Ollama")
 
-                logger.info(f"Successfully generated embedding: {embedding.shape} {embedding.dtype}")
+                logger.info(
+                    f"Successfully generated embedding: {embedding.shape} {embedding.dtype}"
+                )
                 return serialize_vector(embedding)
 
             except httpx.HTTPStatusError as e:
@@ -160,7 +164,7 @@ class OllamaService:
 
     async def generate_summary_and_tag(
         self, transcript: str, available_tags: list[str]
-    ) -> dict[str, str]:
+    ) -> Dict[str, Union[str, datetime, None]]:
         """
         Generate a summary and tag for a transcript.
 
@@ -172,15 +176,27 @@ class OllamaService:
             Dict with "summary" and "tag" keys
         """
         tags_str = ", ".join(available_tags)
-        prompt = f"""Analyze this voice note transcript and provide:
-1. A summary in 5 words or less
-2. The most appropriate tag from this list: {tags_str}
+        current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+        prompt = f"""Current system time: {current_time}
 
-Transcript:
-{transcript}
+Analyze this transcript and determine:
+1. Summary (max 5 words)
+2. Tag: {tags_str}
+3. When a notification should be sent (if this is time-based)
 
-Respond in this exact JSON format only, no other text:
-{{"summary": "your 5 word summary", "tag": "chosen tag"}}"""
+For timestamp: calculate the EXACT time when user should be notified. If transcript mentions "in X minutes/hours", add that to current time. If it mentions a specific time like "2 AM Saturday", use that time. If no specific notification time is mentioned, use null.
+
+Respond with only JSON:
+{{
+  "summary": "brief summary (max 5 words)",
+  "tag": "todo|note|misc",
+  "timestamp_rationale": "explanation of timestamp calculation",
+  "timestamp": "YYYY-MM-DDTHH:MM:SS or null"
+}}
+
+Transcript: {transcript}
+
+JSON response:"""
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -201,17 +217,29 @@ Respond in this exact JSON format only, no other text:
             response_text = data.get("response", "{}")
             try:
                 result = json.loads(response_text)
+                timestamp = result.get("timestamp")
+                notification_time = None
+                if timestamp and timestamp != "null":
+                    try:
+                        # Parse ISO format timestamp to datetime
+                        notification_time = datetime.fromisoformat(
+                            timestamp.replace("Z", "+00:00")
+                        )
+                    except (ValueError, TypeError):
+                        logger.warning(f"Failed to parse timestamp: {timestamp}")
+
                 return {
                     "summary": result.get("summary", ""),
-                    "tag": result.get("tag", available_tags[0] if available_tags else None),
+                    "tag": result.get(
+                        "tag", available_tags[0] if available_tags else None
+                    ),
+                    "notification_timestamp": notification_time,
                 }
             except json.JSONDecodeError:
                 logger.warning(f"Failed to parse LLM response: {response_text}")
-                return {"summary": "", "tag": None}
+                return {"summary": "", "tag": None, "notification_timestamp": None}
 
-    async def answer_question(
-        self, question: str, context_notes: list[Note]
-    ) -> str:
+    async def answer_question(self, question: str, context_notes: list[Note]) -> str:
         """
         Answer a question using RAG with provided notes as context.
 
@@ -255,19 +283,19 @@ Answer:"""
             data = response.json()
             return data.get("response", "").strip()
 
-    async def answer_question_stream(
-        self, question: str, context_notes: list[Note]
-    ):
+    async def answer_question_stream(self, question: str, context_notes: list[Note]):
         """
         Answer a question using RAG with provided notes as context, streaming the response.
         """
         # Build context from notes
         context_parts = []
         for i, note in enumerate(context_notes, 1):
-            created_str = note.created_at.strftime('%Y-%m-%d') if hasattr(note.created_at, 'strftime') else str(note.created_at)
-            context_parts.append(
-                f"Note {i} ({created_str}):\n{note.raw_transcript}"
+            created_str = (
+                note.created_at.strftime("%Y-%m-%d")
+                if hasattr(note.created_at, "strftime")
+                else str(note.created_at)
             )
+            context_parts.append(f"Note {i} ({created_str}):\n{note.raw_transcript}")
         context = "\n\n---\n\n".join(context_parts)
 
         prompt = f"""You are a helpful assistant answering questions based on the user's personal voice notes.

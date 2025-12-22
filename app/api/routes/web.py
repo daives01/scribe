@@ -30,8 +30,6 @@ logger = logging.getLogger(__name__)
 templates = Jinja2Templates(directory="app/templates")
 
 
-
-
 # Custom Jinja2 filter
 def from_json(value):
     """Parse JSON string to Python object."""
@@ -107,7 +105,11 @@ async def login_submit(
     if not user or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "error": "Invalid username or password", "current_user": None},
+            {
+                "request": request,
+                "error": "Invalid username or password",
+                "current_user": None,
+            },
         )
 
     access_token = create_access_token(user.id)
@@ -142,7 +144,11 @@ async def register_submit(
     if session.exec(select(User).where(User.username == username)).first():
         return templates.TemplateResponse(
             "register.html",
-            {"request": request, "error": "Username already taken", "current_user": None},
+            {
+                "request": request,
+                "error": "Username already taken",
+                "current_user": None,
+            },
         )
 
     user = User(username=username, hashed_password=get_password_hash(password))
@@ -188,7 +194,9 @@ async def home(
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
-    return templates.TemplateResponse("home.html", {"request": request, "current_user": user})
+    return templates.TemplateResponse(
+        "home.html", {"request": request, "current_user": user}
+    )
 
 
 @router.get("/settings", response_class=HTMLResponse)
@@ -245,6 +253,7 @@ async def generate_web_api_token(
 
     # Generate new token
     import secrets
+
     api_token = secrets.token_urlsafe(32)
     user.api_token = api_token
     session.add(user)
@@ -374,7 +383,10 @@ async def note_detail(
             {"request": request, "current_user": user, "note": note},
         )
     except NotFoundError:
-        return HTMLResponse(content="<div class='text-center py-8'><p>Note not found</p></div>", status_code=404)
+        return HTMLResponse(
+            content="<div class='text-center py-8'><p>Note not found</p></div>",
+            status_code=404,
+        )
 
 
 @router.get("/web/notes/{note_id}/content", response_class=HTMLResponse)
@@ -417,7 +429,12 @@ async def note_status(
         note = note_service.get_note(note_id, user.id)
         return templates.TemplateResponse(
             "components/status_badge.html",
-            {"request": request, "note_id": note.id, "status": note.processing_status, "error_message": note.error_message},
+            {
+                "request": request,
+                "note_id": note.id,
+                "status": note.processing_status,
+                "error_message": note.error_message,
+            },
         )
     except NotFoundError:
         return HTMLResponse(content="", status_code=404)
@@ -442,15 +459,25 @@ async def similar_notes(
     try:
         note = note_service.get_note(note_id, user.id)
         if note.processing_status != "completed":
-             return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": [], "processing": True})
-             
-        notes = await note_service.get_similar_notes(note_id, user.id, user_settings, limit=5)
-        return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": notes})
+            return templates.TemplateResponse(
+                "components/similar_notes.html",
+                {"request": request, "notes": [], "processing": True},
+            )
+
+        notes = await note_service.get_similar_notes(
+            note_id, user.id, user_settings, limit=5
+        )
+        return templates.TemplateResponse(
+            "components/similar_notes.html", {"request": request, "notes": notes}
+        )
     except NotFoundError:
         return HTMLResponse(content="", status_code=404)
     except Exception as e:
         logger.exception(f"Error in similar_notes: {e}")
-        return templates.TemplateResponse("components/similar_notes.html", {"request": request, "notes": [], "error": str(e)})
+        return templates.TemplateResponse(
+            "components/similar_notes.html",
+            {"request": request, "notes": [], "error": str(e)},
+        )
 
 
 @router.get("/web/notes/{note_id}/edit/{field}", response_class=HTMLResponse)
@@ -484,7 +511,7 @@ async def edit_note_field(
         return HTMLResponse(content="Note not found", status_code=404)
 
 
-# ============= Search & Ask Routes =============
+# ============= Search Routes =============
 
 
 @router.post("/web/search", response_class=HTMLResponse)
@@ -510,162 +537,15 @@ async def search_notes(
         results = await note_service.search_notes_semantic(
             user_id=user.id, query=q, user_settings=user_settings, limit=5
         )
-        return templates.TemplateResponse("components/search_results.html", {"request": request, "results": results})
+        return templates.TemplateResponse(
+            "components/search_results.html", {"request": request, "results": results}
+        )
     except Exception as e:
         logger.exception(f"Error in search_notes: {e}")
-        return templates.TemplateResponse("components/search_results.html", {"request": request, "results": [], "error": str(e)})
-
-
-@router.get("/web/ask", response_class=HTMLResponse)
-async def ask_modal(request: Request):
-    """Render Ask modal."""
-    return templates.TemplateResponse("ask_modal.html", {"request": request})
-
-
-@router.post("/web/ask", response_class=HTMLResponse)
-async def ask_question(
-    request: Request,
-    session: SessionDep,
-    q: Annotated[Optional[str], Form()] = "",
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """Initiate a question and return the SSE skeleton."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="Please log in", status_code=401)
-
-    if not q or not q.strip():
-        return HTMLResponse(content="")
-
-    ask_id = uuid.uuid4().hex[:8]
-    
-    # Encode query for URL
-    import urllib.parse
-    encoded_q = urllib.parse.quote(q)
-    stream_url = f"/web/ask/stream/{ask_id}?q={encoded_q}"
-
-    return templates.TemplateResponse(
-        "components/chat_message_skeleton.html",
-        {
-            "request": request,
-            "question": q,
-            "ask_id": ask_id,
-            "stream_url": stream_url
-        }
-    )
-
-
-@router.get("/web/ask/stream/{ask_id}")
-async def ask_stream(
-    ask_id: str, 
-    request: Request,
-    session: SessionDep,
-    q: str,
-    access_token: Optional[str] = Cookie(default=None),
-):
-    """SSE stream for AI response."""
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return Response(status_code=401)
-
-    user_settings = get_user_settings_for_user(session, user)
-    note_service = NoteService(session)
-
-    async def event_generator():
-        logger.info(f"SSE START: ask_id={ask_id}")
-        
-        def sse_message(data: str):
-            # Start with 'data: ' and ensure double newline at end of block
-            msg = "".join(f"data: {line}\n" for line in data.split("\n")) + "\n"
-            return msg
-
-        try:
-            # 1. Perform Search (Moved to stream for statelessness)
-            results = await note_service.search_notes_semantic(
-                user_id=user.id, query=q, user_settings=user_settings, limit=5
-            )
-
-            if not results:
-                logger.warning(f"SSE NO RESULTS: ask_id={ask_id}")
-                error_html = f'<p hx-swap-oob="outerHTML:#ai-response-{ask_id}" class="text-sm italic" style="color: var(--color-text-secondary);">I couldn\'t find any relevant notes to answer your question.</p>'
-                yield sse_message(error_html)
-                # Close connection
-                final_container = f'<div id="ai-container-{ask_id}" hx-swap-oob="true" class="w-full"></div>'
-                yield sse_message(final_container)
-                return
-            
-            logger.info(f"SSE PROMPT: ask_id={ask_id}, model={user_settings.ollama_model}")
-
-            ollama = get_ollama_service(
-                base_url=user_settings.ollama_url,
-                model=user_settings.ollama_model,
-                embedding_model=user_settings.ollama_embedding_model,
-                api_key=user_settings.ollama_api_key,
-            )
-
-            # 2. Stream the response from Ollama
-            first_chunk = True
-            full_response = ""
-            try:
-                async for chunk in ollama.answer_question_stream(q, results):
-                    full_response += chunk
-                    
-                    # Sanitize for SSE data format (replace raw newlines with entity )
-                    # This ensures we don't break the protocol while preserving them in the HTML
-                    # HTMX will insert these into the whitespace-pre-wrap container
-                    safe_chunk = chunk.replace('\n', '&#10;')
-                    
-                    if first_chunk:
-                        logger.info(f"SSE FIRST CHUNK: ask_id={ask_id}")
-                        # Replace the entire placeholder with the start of the response
-                        oob = f'<div id="ai-response-{ask_id}" hx-swap-oob="outerHTML:#ai-response-{ask_id}" class="whitespace-pre-wrap leading-relaxed text-xl font-medium" style="color: var(--color-text-primary);">{safe_chunk}</div>'
-                        yield sse_message(oob)
-                        first_chunk = False
-                    else:
-                        yield sse_message(f'<span hx-swap-oob="beforeend:#ai-response-{ask_id}">{safe_chunk}</span>')
-                    
-                    await asyncio.sleep(0.01)
-                
-                logger.info(f"SSE OLLAMA COMPLETE: ask_id={ask_id}")
-            except Exception as e:
-                logger.error(f"Error streaming response: {e}")
-                err_html = f'<span hx-swap-oob="beforeend:#ai-response-{ask_id}" class="text-red-500"> (Error: {str(e)})</span>'
-                yield sse_message(err_html)
-
-            # 3. Finalize and send sources
-            sources_html = templates.get_template("components/chat_sources_partial.html").render({
-                "request": request,
-                "sources": results
-            })
-            
-            # Show the sources container and swap in the notes
-            oob_sources = f'<div id="ai-sources-{ask_id}" hx-swap-oob="outerHTML:#ai-sources-{ask_id}" class="mt-8 pt-8 border-t" style="border-color: var(--color-border);">{sources_html}</div>'
-            yield sse_message(oob_sources)
-            
-            # 4. Final OOB to remove SSE connection attributes to prevent reconnection loops
-            # We replace the outer container with one that looks the same but has no SSE attributes
-            final_container = f'<div id="ai-container-{ask_id}" hx-swap-oob="true" class="w-full"></div>'
-            yield sse_message(final_container)
-            
-            logger.info(f"SSE stream complete for ask_id={ask_id}")
-            
-        except Exception as e:
-            logger.error(f"SSE Outer Error for ask_id={ask_id}: {e}")
-            err_html = f'<p hx-swap-oob="outerHTML:#ai-response-{ask_id}" class="text-red-500">Error: {str(e)}</p>'
-            yield sse_message(err_html)
-            # Close connection
-            final_container = f'<div id="ai-container-{ask_id}" hx-swap-oob="true" class="w-full"></div>'
-            yield sse_message(final_container)
-
-    return StreamingResponse(
-        event_generator(), 
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        }
-    )
+        return templates.TemplateResponse(
+            "components/search_results.html",
+            {"request": request, "results": [], "error": str(e)},
+        )
 
 
 # ============= Settings Helpers =============
@@ -688,7 +568,9 @@ async def get_models(
     # Use provided URL or fallback to saved URL
     target_url = ollama_url if ollama_url else user_settings.ollama_url
 
-    ollama = get_ollama_service(base_url=target_url, api_key=user_settings.ollama_api_key)
+    ollama = get_ollama_service(
+        base_url=target_url, api_key=user_settings.ollama_api_key
+    )
 
     try:
         models = await ollama.get_available_models()
@@ -722,11 +604,13 @@ async def get_connection_status(
         return HTMLResponse(content="<p>Please log in</p>")
 
     user_settings = get_user_settings_for_user(session, user)
-    
+
     # Use provided URL or fallback to saved URL
     target_url = ollama_url if ollama_url else user_settings.ollama_url
-    
-    ollama = get_ollama_service(base_url=target_url, api_key=user_settings.ollama_api_key)
+
+    ollama = get_ollama_service(
+        base_url=target_url, api_key=user_settings.ollama_api_key
+    )
     connected = await ollama.check_connection()
 
     if connected:
@@ -776,7 +660,7 @@ async def update_settings_web(
 ) -> HTMLResponse:
     """
     Update user settings (HTMX Form).
-    
+
     Accepts form data, processes tags, and updates the database.
     """
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -787,16 +671,18 @@ async def update_settings_web(
 
     if ollama_url is not None:
         user_settings.ollama_url = ollama_url
-    
+
     if ollama_model is not None:
         user_settings.ollama_model = ollama_model
 
     if ollama_embedding_model is not None:
         user_settings.ollama_embedding_model = ollama_embedding_model
-        
+
     if ollama_api_key is not None:
         # Handle empty string as None/empty
-        user_settings.ollama_api_key = ollama_api_key if ollama_api_key.strip() else None
+        user_settings.ollama_api_key = (
+            ollama_api_key if ollama_api_key.strip() else None
+        )
 
     if custom_tags is not None:
         # Split by comma and strip whitespace
@@ -805,5 +691,5 @@ async def update_settings_web(
 
     session.add(user_settings)
     session.commit()
-    
+
     return HTMLResponse(content="", status_code=200)

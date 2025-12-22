@@ -46,12 +46,14 @@ class UserSettings(SQLModel, table=True):
 
     # AI Configuration
     ollama_url: str = Field(default="http://localhost:11434")
-    ollama_model: str = Field(default="llama3")
+    ollama_model: str = Field(default="qwen3:4b-instruct")
     ollama_embedding_model: str = Field(default="nomic-embed-text")
     ollama_api_key: str | None = Field(default=None)
 
     # User-defined tags (JSON array stored as string)
-    custom_tags: str = Field(default='["Idea", "Todo", "Work", "Personal", "Reference"]')
+    custom_tags: str = Field(
+        default='["Idea", "Todo", "Work", "Personal", "Reference"]'
+    )
 
     # Relationships
     user: User = Relationship(back_populates="settings")

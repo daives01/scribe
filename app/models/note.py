@@ -11,6 +11,7 @@ def _utc_now() -> datetime:
     """Return current UTC time."""
     return datetime.now(UTC)
 
+
 if TYPE_CHECKING:
     from app.models.user import User
 
@@ -27,6 +28,9 @@ class Note(SQLModel, table=True):
     raw_transcript: str = Field(default="")
     summary: str | None = Field(default=None)  # <5 word summary
     tag: str | None = Field(default=None)
+    notification_timestamp: datetime | None = Field(
+        default=None, index=True
+    )  # When to send notification
 
     # Audio storage path (for re-processing if needed)
     audio_path: str | None = Field(default=None)

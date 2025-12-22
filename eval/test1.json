@@ -1,0 +1,15 @@
+{
+  "prompt_template": "Analyze this voice note transcript and provide:\n1. A summary in 5 words or less\n2. The most appropriate tag from this list: todo, note, misc\n\nTranscript:\n{{transcript}}\n\nRespond in this exact JSON format only, no other text:\n{\"summary\": \"your 5 word summary\", \"tag\": \"chosen tag\"}",
+  "transcripts": [
+    "Pick up some milk and eggs on the way home from work today.",
+    "The server migration is scheduled for 2 AM on Saturday to minimize downtime.",
+    "I really like the coffee at that new place on 5th street, much better than the office.",
+    "Need to remember to fix the bug in the authentication middleware before the sprint ends.",
+    "The weather today is surprisingly warm for December, I might go for a walk later.",
+    "Call the dentist to reschedule my appointment for next Tuesday afternoon.",
+    "The customer feedback for the new UI has been mostly positive except for the font size.",
+    "Was thinking about that movie I saw last night, the ending was really confusing.",
+    "Submit the quarterly expense report by Friday afternoon at the latest.",
+    "The logs show a sudden spike in latency every time the database backup starts."
+  ]
+}

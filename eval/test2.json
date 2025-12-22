@@ -1,0 +1,15 @@
+{
+  "prompt_template": "Today's date and time is: {{current_time}}.\n\nAnalyze this voice note and provide:\n1. A summary (max 5 words)\n2. Tag: todo, note, or misc\n3. Timestamp: If a time or date is mentioned, provide it as an ISO-8601 string relative to today. If not mentioned, return null.\n\nTranscript:\n{{transcript}}\n\nRespond in this exact JSON format only:\n{\"summary\": \"...\", \"tag\": \"...\", \"timestamp\": \"...\"}",
+  "transcripts": [
+    "Pick up some milk and eggs on the way home from work today.",
+    "The server migration is scheduled for 2 AM on Saturday to minimize downtime.",
+    "Call the dentist to reschedule my appointment for next Tuesday afternoon.",
+    "Submit the quarterly expense report by Friday afternoon at the latest.",
+    "Remind me to check the oven in twenty minutes.",
+    "The weather today is surprisingly warm for December.",
+    "Met a guy named Dave at the conference who works on distributed systems.",
+    "Let's book the flight for the offsite on Jan 15th.",
+    "The logs show a sudden spike in latency every time the database backup starts.",
+    "Buy tickets for the concert tomorrow at 10am."
+  ]
+}

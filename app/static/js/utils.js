@@ -65,6 +65,27 @@ function formatRelativeTime(dateString) {
     return date.toLocaleDateString();
 }
 
+// Format reminder time for future timestamps
+function formatReminderTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = date - now;
+    
+    if (diffMs < 0) return 'overdue'; // Past reminder
+    
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffSecs < 60) return 'in moments';
+    if (diffMins < 60) return `in ${diffMins}m`;
+    if (diffHours < 24) return `in ${diffHours}h`;
+    if (diffDays < 7) return `in ${diffDays}d`;
+    
+    return date.toLocaleDateString();
+}
+
 // Debounce function
 function debounce(func, wait) {
     let timeout;
@@ -99,12 +120,24 @@ document.body.addEventListener('htmx:afterSwap', function (event) {
         textarea.addEventListener('input', () => autoResizeTextarea(textarea));
         autoResizeTextarea(textarea);
     });
+    
+    // Initialize reminder times
+    event.detail.target.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
+        const reminderTime = element.dataset.reminder;
+        if (reminderTime) {
+            element.textContent = formatReminderTime(reminderTime);
+        }
+    });
 });
 
-// Close modal on escape key
-document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') {
-        const modal = document.getElementById('ask-modal');
-        if (modal) modal.remove();
-    }
+// Initialize reminder times on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
+        const reminderTime = element.dataset.reminder;
+        if (reminderTime) {
+            element.textContent = formatReminderTime(reminderTime);
+        }
+    });
 });
+
+

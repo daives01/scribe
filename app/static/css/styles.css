@@ -111,6 +111,23 @@ a:hover {
     color: var(--color-text-secondary);
 }
 
+/* Reminder Badges */
+.reminder-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgb(59 130 246 / 0.1);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(59 130 246);
+}
+
+.reminder-text {
+    font-size: 0.7rem;
+}
+
 /* HTMX Loading States */
 .htmx-indicator {
     display: none;
@@ -219,6 +236,47 @@ a:hover {
 :focus-visible {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
+}
+
+/* Small Buttons for Card Actions */
+.btn-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+}
+
+.btn-small:active {
+    transform: translateY(0);
+}
+
+.btn-retry {
+    background-color: rgb(59 130 246 / 0.1);
+    color: rgb(59 130 246);
+}
+
+.btn-retry:hover {
+    background-color: rgb(59 130 246 / 0.2);
+}
+
+.btn-delete {
+    background-color: rgb(239 68 68 / 0.1);
+    color: rgb(239 68 68);
+}
+
+.btn-delete:hover {
+    background-color: rgb(239 68 68 / 0.2);
 }
 
 /* Transitions for Theme Changes */

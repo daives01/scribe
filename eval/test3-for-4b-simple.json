@@ -1,0 +1,15 @@
+{
+  "prompt_template": "Current system time: {{current_time}}\n\nAnalyze this transcript and determine:\n1. Summary (max 5 words)\n2. Tag: todo, note, or misc\n3. When a notification should be sent (if this is time-based)\n\nFor timestamp: calculate the EXACT time when user should be notified. If transcript mentions \"in X minutes/hours\", add that to current time. If it mentions a specific time like \"2 AM Saturday\", use that time. If no specific notification time is mentioned, use null.\n\nRespond with only JSON:\n{\n  \"summary\": \"brief summary (max 5 words)\",\n  \"tag\": \"todo|note|misc\",\n  \"timestamp_rationale\": \"explanation of timestamp calculation\",\n  \"timestamp\": \"YYYY-MM-DDTHH:MM:SS or null\"\n}\n\nTranscript: {{transcript}}\n\nJSON response:",
+  "transcripts": [
+    "Pick up some milk and eggs on the way home from work today.",
+    "The server migration is scheduled for 2 AM on Saturday to minimize downtime.",
+    "Call the dentist to reschedule my appointment for next Tuesday afternoon.",
+    "Submit the quarterly expense report by Friday afternoon at the latest.",
+    "Remind me to check the oven in twenty minutes.",
+    "The weather today is surprisingly warm for December.",
+    "Met a guy named Dave at the conference who works on distributed systems.",
+    "Let's book the flight for the offsite on Jan 15th.",
+    "The logs show a sudden spike in latency every time the database backup starts.",
+    "Buy tickets for the concert tomorrow at 10am."
+  ]
+}

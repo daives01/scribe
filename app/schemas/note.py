@@ -26,6 +26,7 @@ class NoteResponse(BaseModel):
     raw_transcript: str
     summary: str | None
     tag: str | None
+    notification_timestamp: datetime | None
     processing_status: str
     error_message: str | None
     created_at: datetime

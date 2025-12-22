@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # Ollama defaults (per-user overrides in UserSettings)
     default_ollama_url: str = "http://localhost:11434"
-    default_ollama_model: str = "llama3"
+    default_ollama_model: str = "qwen3:4b-instruct"
     embedding_model: str = "nomic-embed-text"
 
     # Whisper
