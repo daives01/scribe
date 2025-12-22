@@ -13,6 +13,7 @@
 
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +30,8 @@
   {% block head %}{% endblock %}
 </head>
 
-<body class="h-full" style="background-color: var(--color-bg-primary); color: var(--color-text-primary);">
+<body class="h-full" style="background-color: var(--color-bg-primary); color: var(--color-text-primary);" hx-ext="sse"
+  sse-connect="/api/events">
 
   <!-- Top Navigation -->
   <nav class="border-b sticky top-0 z-40"
@@ -101,6 +103,15 @@
 
   <!-- Utility Scripts -->
   <script src="/static/js/utils.js"></script>
+  <script>
+    // SSE Debugging
+    document.body.addEventListener('htmx:sseMessage', function (event) {
+      console.log('[SSE Event]', event.detail.type, event.detail.data);
+    });
+    document.body.addEventListener('htmx:sseError', function (event) {
+      console.error('[SSE Error]', event);
+    });
+  </script>
 
   {% block scripts %}{% endblock %}
 </body>

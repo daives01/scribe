@@ -1,5 +1,6 @@
 <div class="status-badge status-{{ status }}" {% if status in ["pending", "transcribing" , "processing" ] %}
-    hx-get="/web/notes/{{ note_id }}/status" hx-trigger="every 2s" hx-swap="outerHTML" {% endif %}>
+    hx-get="/web/notes/{{ note_id }}/status" hx-trigger="sse:note-status-{{ note_id }} from:body" hx-swap="outerHTML" {%
+    endif %}>
     {% if status == "pending" %}
     <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="8" />

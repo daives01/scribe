@@ -1,10 +1,16 @@
 {% for note in notes %}
-<div class="card p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
-    hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main">
+<div class="card p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200" {% if
+    note.processing_status=="completed" %} hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main" {% else
+    %} onclick="showToast('AI is still processing this note...', 'info')" {% endif %}>
+
+    <!-- SSE Listener for Card Refresh (when processing complete) -->
+    <div hx-get="/web/notes/{{ note.id }}/card" hx-trigger="sse:note-processed-{{ note.id }} from:body"
+        hx-swap="outerHTML" hx-target="closest .card"></div>
+
     <!-- Status Badge (if not completed) -->
     {% if note.processing_status != "completed" %}
-    <div class="mb-3" {% if note.processing_status in ["pending", "transcribing" , "processing" ] %}
-        hx-get="/web/notes/{{ note.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML" {% endif %}>
+    <div class="mb-3" hx-get="/web/notes/{{ note.id }}/status" hx-trigger="sse:note-status-{{ note.id }} from:body"
+        hx-swap="outerHTML">
         <span class="status-badge status-{{ note.processing_status }}">
             {% if note.processing_status in ["pending", "transcribing", "processing"] %}
             <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,7 +74,7 @@
 </div>
 {% endfor %}
 
-{% if notes %}
+{% if show_count and notes %}
 <script>
     document.getElementById('notes-count').textContent = '{{ total }} note{% if total != 1 %}s{% endif %}';
 </script>

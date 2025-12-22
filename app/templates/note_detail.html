@@ -18,7 +18,6 @@
 
         <button hx-delete="/api/notes/{{ note.id }}"
             hx-confirm="Are you sure you want to delete this note? This action cannot be undone." hx-target="main"
-            hx-headers='{"HX-Redirect": "/"}'
             class="text-sm flex items-center gap-2 px-3 py-2 rounded-lg transition hover:opacity-80"
             style="color: var(--color-error); background-color: rgb(239 68 68 / 0.1);">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -30,107 +29,7 @@
     </div>
 
     <!-- Note Content -->
-    <div id="note-content-{{ note.id }}" class="space-y-6">
-
-        <!-- Status Badge (if not completed) -->
-        {% if note.processing_status != "completed" %}
-        <div class="status-badge status-{{ note.processing_status }}" {% if note.processing_status in
-            ["pending", "transcribing" , "processing" ] %} hx-get="/web/notes/{{ note.id }}/status"
-            hx-trigger="every 2s" hx-swap="outerHTML" {% endif %}>
-            {% if note.processing_status == "pending" %}
-            <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" />
-            </svg>
-            {% elif note.processing_status in ["transcribing", "processing"] %}
-            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {% elif note.processing_status == "failed" %}
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {% endif %}
-            {{ note.processing_status }}
-            {% if note.error_message %}
-            <span class="text-xs ml-2">- {{ note.error_message[:50] }}{% if note.error_message|length > 50 %}...{% endif
-                %}</span>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Summary (Inline Editable) -->
-        <div hx-get="/web/notes/{{ note.id }}/edit/summary" hx-trigger="click" hx-target="this" hx-swap="outerHTML"
-            class="cursor-text p-4 rounded-xl hover:shadow-sm transition group"
-            style="background-color: var(--color-bg-secondary);">
-            <div class="flex items-start justify-between">
-                <h1 class="text-3xl font-bold">{{ note.summary or "Untitled Note" }}</h1>
-                <svg class="w-5 h-5 opacity-0 group-hover:opacity-50 transition"
-                    style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-            </div>
-        </div>
-
-        <!-- Tag (Inline Editable Dropdown) -->
-        <div hx-get="/web/notes/{{ note.id }}/edit/tag" hx-trigger="click" hx-target="this" hx-swap="outerHTML"
-            class="inline-flex cursor-pointer group">
-            {% if note.tag %}
-            <span class="px-4 py-2 rounded-full text-sm font-medium transition group-hover:shadow-sm"
-                style="background-color: var(--color-accent-primary); color: white;">
-                {{ note.tag }}
-                <svg class="w-4 h-4 inline-block ml-1 opacity-0 group-hover:opacity-100 transition" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </span>
-            {% else %}
-            <span
-                class="px-4 py-2 rounded-full text-sm font-medium border-2 border-dashed transition group-hover:border-solid"
-                style="border-color: var(--color-border); color: var(--color-text-tertiary);">
-                + Add tag
-            </span>
-            {% endif %}
-        </div>
-
-        <!-- Transcript (Inline Editable) -->
-        <div hx-get="/web/notes/{{ note.id }}/edit/transcript" hx-trigger="click" hx-target="this" hx-swap="outerHTML"
-            class="cursor-text p-6 rounded-xl hover:shadow-sm transition group min-h-[200px]"
-            style="background-color: var(--color-bg-secondary);">
-            <div class="flex items-start justify-between mb-4">
-                <h3 class="text-sm font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary);">
-                    Transcript</h3>
-                <svg class="w-5 h-5 opacity-0 group-hover:opacity-50 transition"
-                    style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-            </div>
-            <p class="whitespace-pre-wrap leading-relaxed text-lg">{{ note.raw_transcript or "No transcript available."
-                }}</p>
-        </div>
-
-        <!-- Metadata -->
-        <div class="flex flex-wrap gap-4 text-sm" style="color: var(--color-text-secondary);">
-            <span class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Created: {{ note.created_at.strftime('%B %d, %Y at %I:%M %p') }}
-            </span>
-            <span class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Updated: {{ note.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
-            </span>
-        </div>
-
-    </div>
+    {% include "partials/note_content.html" %}
 
     <!-- Similar Notes Section -->
     <div class="border-t pt-8 mt-8" style="border-color: var(--color-border);">
@@ -142,8 +41,9 @@
             </svg>
             Similar Notes
         </h2>
-        <div id="similar-notes-{{ note.id }}" hx-get="/web/notes/{{ note.id }}/similar" hx-trigger="load"
-            hx-swap="innerHTML" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div id="similar-notes-{{ note.id }}" hx-get="/web/notes/{{ note.id }}/similar"
+            hx-trigger="load, sse:note-processed-{{ note.id }} from:body" hx-swap="innerHTML"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Loading placeholder -->
             <div class="col-span-full flex justify-center py-8">
                 <svg class="w-6 h-6 animate-spin" style="color: var(--color-accent-primary);" fill="none"

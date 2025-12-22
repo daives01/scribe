@@ -319,8 +319,31 @@ async def recent_notes(
     notes, total = note_service.list_notes(user.id, skip=0, limit=limit)
     return templates.TemplateResponse(
         "components/note_card.html",
-        {"request": request, "notes": notes, "total": total},
+        {"request": request, "notes": notes, "total": total, "show_count": True},
     )
+
+
+@router.get("/web/notes/{note_id}/card", response_class=HTMLResponse)
+async def note_card(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """Get a single note card."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    note_service = NoteService(session)
+    try:
+        note = note_service.get_note(note_id, user.id)
+        return templates.TemplateResponse(
+            "components/note_card.html",
+            {"request": request, "notes": [note], "show_count": False},
+        )
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
 
 
 @router.get("/web/notes/{note_id}", response_class=HTMLResponse)
@@ -338,12 +361,37 @@ async def note_detail(
     note_service = NoteService(session)
     try:
         note = note_service.get_note(note_id, user.id)
+        if note.processing_status != "completed":
+            return RedirectResponse(url="/", status_code=303)
         return templates.TemplateResponse(
             "note_detail.html",
             {"request": request, "current_user": user, "note": note},
         )
     except NotFoundError:
         return HTMLResponse(content="<div class='text-center py-8'><p>Note not found</p></div>", status_code=404)
+
+
+@router.get("/web/notes/{note_id}/content", response_class=HTMLResponse)
+async def note_content(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """Get only the content part of a note detail page."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    note_service = NoteService(session)
+    try:
+        note = note_service.get_note(note_id, user.id)
+        return templates.TemplateResponse(
+            "partials/note_content.html",
+            {"request": request, "current_user": user, "note": note},
+        )
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
 
 
 @router.get("/web/notes/{note_id}/status", response_class=HTMLResponse)

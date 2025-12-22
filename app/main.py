@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import (
     auth_router,
+    events_router,
     notes_router,
     search_router,
     settings_router,
@@ -72,6 +73,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Include API routers
 app.include_router(auth_router)
+app.include_router(events_router)
 app.include_router(notes_router)
 app.include_router(search_router)
 app.include_router(settings_router)

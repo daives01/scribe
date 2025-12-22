@@ -5,12 +5,13 @@ import uuid
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Response, UploadFile, status
 
 from app.api.deps import CurrentUserDep, SessionDep, UserSettingsDep
 from app.schemas.note import NoteListResponse, NoteResponse, NoteUpdate, SimilarNotesResponse
 from app.services.note_service import NoteService
 from app.tasks.processing_tasks import process_new_note, reprocess_note
+from app.utils.events import event_manager
 from app.utils.exceptions import NotFoundError
 
 router = APIRouter(prefix="/api", tags=["notes"])
@@ -58,6 +59,9 @@ async def upload_voice_note(
     # Trigger background processing
     background_tasks.add_task(process_new_note, note.id)
 
+    # Broadcast event
+    await event_manager.broadcast(current_user.id, "note-created", str(note.id))
+
     return NoteResponse.model_validate(note)
 
 
@@ -97,7 +101,7 @@ def get_note(
 
 
 @router.patch("/notes/{note_id}", response_model=NoteResponse)
-def update_note(
+async def update_note(
     note_id: int,
     update_data: NoteUpdate,
     session: SessionDep,
@@ -129,10 +133,11 @@ def update_note(
 
 
 @router.delete("/notes/{note_id}", status_code=status.HTTP_200_OK)
-def delete_note(
+async def delete_note(
     note_id: int,
     session: SessionDep,
     current_user: CurrentUserDep,
+    background_tasks: BackgroundTasks,
 ) -> dict:
     """
     Delete a note.
@@ -140,7 +145,8 @@ def delete_note(
     note_service = NoteService(session)
     try:
         note_service.delete_note(note_id, current_user.id)
-        return {"success": True}
+        await event_manager.broadcast(current_user.id, "note-deleted", str(note_id))
+        return Response(headers={"HX-Redirect": "/"})
     except NotFoundError as e:
         raise e.to_http_exception()
 

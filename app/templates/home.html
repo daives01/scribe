@@ -53,7 +53,8 @@
             </span>
         </div>
 
-        <div id="notes-list" hx-get="/web/notes/recent" hx-trigger="load" hx-swap="innerHTML"
+        <div id="notes-list" hx-get="/web/notes/recent"
+            hx-trigger="load, sse:note-created from:body, sse:note-deleted from:body" hx-swap="innerHTML"
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Loading placeholder -->
             <div class="col-span-full flex justify-center py-12">
