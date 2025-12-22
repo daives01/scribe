@@ -12,5 +12,24 @@ wheels/
 # Environment variables
 .env
 
-
+# Database
 *.db
+
+# Uploads directory (contains user audio files)
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Alembic
+alembic/versions/*.py
+!alembic/versions/.gitkeep

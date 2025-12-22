@@ -1,0 +1,19 @@
+<!-- Edit Summary Form -->
+<form hx-patch="/api/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
+    hx-on::after-request="if(event.detail.successful) showToast('Summary updated!', 'success')" class="p-4 rounded-xl"
+    style="background-color: var(--color-bg-secondary);">
+    <input type="text" name="summary" value="{{ note.summary or '' }}" placeholder="Enter a short summary..."
+        class="w-full text-3xl font-bold bg-transparent border-b-2 focus:outline-none pb-2"
+        style="border-color: var(--color-accent-primary);" autofocus />
+    <div class="flex items-center gap-2 mt-4">
+        <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg text-white transition hover:opacity-90"
+            style="background-color: var(--color-accent-primary);">
+            Save
+        </button>
+        <button type="button" hx-get="/web/notes/{{ note.id }}" hx-target="main"
+            class="px-4 py-2 text-sm font-medium rounded-lg transition hover:opacity-80"
+            style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+            Cancel
+        </button>
+    </div>
+</form>

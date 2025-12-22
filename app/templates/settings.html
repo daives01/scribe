@@ -1,0 +1,230 @@
+{% extends "partials/base.html" if request.headers.get("HX-Request") else "base.html" %}
+
+{% block title %}Settings - Scribe{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-8">
+
+    <!-- Header -->
+    <div class="flex items-center gap-4">
+        <button hx-get="/" hx-push-url="true" hx-target="main" class="p-2 rounded-lg transition"
+            style="color: var(--color-text-secondary); background-color: var(--color-bg-secondary);">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </button>
+        <h1 class="text-3xl font-bold">Settings</h1>
+    </div>
+
+    <!-- Mobile / Siri Shortcut Section -->
+    <div class="p-6 rounded-xl" style="background-color: var(--color-bg-secondary);">
+        <div class="flex items-center gap-3 pb-4 border-b" style="border-color: var(--color-border);">
+            <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);">
+                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold">Mobile & Siri Integration</h2>
+                <p class="text-sm" style="color: var(--color-text-secondary);">Record voice notes from your phone using
+                    Siri</p>
+            </div>
+        </div>
+
+        <div class="mt-4 space-y-4">
+            <!-- API Token Display/Generation -->
+            <div id="api-token-section">
+                {% if api_token %}
+                <div class="p-4 rounded-lg" style="background-color: var(--color-bg-tertiary);">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium">Your API Token</span>
+                        <button hx-delete="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
+                            hx-confirm="Revoke this token? Any Siri shortcuts using it will stop working."
+                            class="text-xs px-2 py-1 rounded"
+                            style="color: var(--color-error); background-color: rgb(239 68 68 / 0.1);">
+                            Revoke
+                        </button>
+                    </div>
+                    <code class="block p-3 rounded text-sm break-all"
+                        style="background-color: var(--color-bg-primary);">{{ api_token }}</code>
+                </div>
+                {% else %}
+                <button hx-post="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
+                    class="w-full py-3 rounded-lg font-medium text-white transition flex items-center justify-center gap-2"
+                    style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    Generate API Token
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Siri Shortcut Instructions -->
+            <details class="mt-4">
+                <summary class="cursor-pointer font-medium flex items-center gap-2"
+                    style="color: var(--color-accent-primary);">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    How to set up Siri Shortcuts
+                </summary>
+
+                <div class="mt-4 p-4 rounded-lg space-y-4 text-sm" style="background-color: var(--color-bg-tertiary);">
+                    <p><strong>Step 1:</strong> Generate an API token above if you haven't already.</p>
+
+                    <p><strong>Step 2:</strong> Open the <strong>Shortcuts</strong> app on your iPhone/iPad.</p>
+
+                    <p><strong>Step 3:</strong> Create a new shortcut with these actions:</p>
+
+                    <ol class="list-decimal list-inside space-y-2 pl-2">
+                        <li><strong>Record Audio</strong> - Records your voice note</li>
+                        <li><strong>Get Contents of URL</strong> - With these settings:
+                            <ul class="list-disc list-inside pl-4 mt-1 space-y-1"
+                                style="color: var(--color-text-secondary);">
+                                <li>URL: <code class="px-1 rounded"
+                                        style="background-color: var(--color-bg-primary);">{{ server_url }}/upload</code>
+                                </li>
+                                <li>Method: <strong>POST</strong></li>
+                                <li>Headers:
+                                    <ul class="list-disc list-inside pl-4">
+                                        <li><code>Authorization</code>: <code>Bearer YOUR_API_TOKEN</code></li>
+                                    </ul>
+                                </li>
+                                <li>Request Body: <strong>Form</strong>
+                                    <ul class="list-disc list-inside pl-4">
+                                        <li>Key: <code>audio_file</code>, Type: <strong>File</strong>, Value:
+                                            <em>Recorded
+                                                Audio</em></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <p><strong>Step 4:</strong> Name your shortcut "Voice Note" or similar.</p>
+
+                    <p><strong>Step 5:</strong> Say "Hey Siri, Voice Note" to start recording!</p>
+
+                    <div class="p-3 rounded-lg mt-4"
+                        style="background-color: rgb(16 185 129 / 0.1); color: var(--color-success);">
+                        <strong>Tip:</strong> You can also add your shortcut to the Lock Screen, Home Screen, or Back
+                        Tap for quick access.
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- Ollama Configuration -->
+    <form id="settings-form" hx-patch="/web/settings" hx-swap="none"
+        hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
+        class="space-y-6 p-6 rounded-xl" style="background-color: var(--color-bg-secondary);">
+        <div class="flex items-center gap-3 pb-4 border-b" style="border-color: var(--color-border);">
+            <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <div>
+                <h2 class="text-lg font-semibold">AI Configuration</h2>
+                <p class="text-sm" style="color: var(--color-text-secondary);">Configure your local Ollama instance</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Ollama URL</label>
+                <input type="url" name="ollama_url" value="{{ settings.ollama_url }}"
+                    placeholder="http://localhost:11434" class="w-full px-4 py-3 rounded-lg border"
+                    style="border-color: var(--color-border);" hx-get="/web/settings/status"
+                    hx-trigger="keyup changed delay:1000ms" hx-target="#connection-status" hx-include="this" />
+                <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The URL where your Ollama server is
+                    running (updates status automatically)</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">LLM Model</label>
+                <div class="relative">
+                    <select name="ollama_model" class="w-full px-4 py-3 rounded-lg border appearance-none"
+                        style="border-color: var(--color-border);" hx-get="/web/settings/models"
+                        hx-trigger="load, change from:[name='ollama_url'] delay:1000ms" hx-include="[name='ollama_url']"
+                        hx-swap="innerHTML">
+                        <option value="{{ settings.ollama_model }}" selected>{{ settings.ollama_model }}</option>
+                    </select>
+                    <svg class="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The model to use for summarization
+                    and Q&A</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">API Key (Optional)</label>
+                <input type="password" name="ollama_api_key" value="{{ settings.ollama_api_key or '' }}"
+                    placeholder="••••••••" class="w-full px-4 py-3 rounded-lg border"
+                    style="border-color: var(--color-border);" />
+                <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Only required if your Ollama instance
+                    requires authentication</p>
+            </div>
+        </div>
+
+        <div class="border-t pt-6 mt-6" style="border-color: var(--color-border);">
+            <div class="flex items-center gap-3 pb-4">
+                <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <div>
+                    <h2 class="text-lg font-semibold">Custom Tags</h2>
+                    <p class="text-sm" style="color: var(--color-text-secondary);">Tags available for categorizing your
+                        notes</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">Tags (comma-separated)</label>
+                <input type="text" name="custom_tags" value="{{ settings.custom_tags | join(', ') }}"
+                    placeholder="Idea, Todo, Work, Personal, Reference" class="w-full px-4 py-3 rounded-lg border"
+                    style="border-color: var(--color-border);" />
+                <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">These tags will be available when
+                    categorizing notes</p>
+            </div>
+        </div>
+
+        <button type="submit"
+            class="w-full py-3 rounded-lg font-semibold text-white transition flex items-center justify-center gap-2"
+            style="background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-hover));">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Save Settings
+        </button>
+
+    </form>
+
+    <!-- Connection Status -->
+    <div id="connection-status" hx-get="/web/settings/status" hx-trigger="load" hx-swap="innerHTML"
+        class="p-6 rounded-xl" style="background-color: var(--color-bg-secondary);">
+        <!-- Status loaded via HTMX -->
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 animate-spin" style="color: var(--color-accent-primary);" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+            </svg>
+            <span>Checking connection...</span>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

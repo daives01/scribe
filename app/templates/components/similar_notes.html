@@ -1,0 +1,30 @@
+{% if notes %}
+{% for note in notes %}
+<div class="card p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+    hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main">
+    <h4 class="font-medium mb-2 line-clamp-2">
+        {{ note.summary or note.raw_transcript[:50] }}{% if note.raw_transcript and note.raw_transcript|length > 50 and
+        not note.summary %}...{% endif %}
+    </h4>
+
+    <div class="flex items-center justify-between text-xs" style="color: var(--color-text-tertiary);">
+        {% if note.tag %}
+        <span class="tag-badge text-xs py-0.5 px-2">{{ note.tag }}</span>
+        {% else %}
+        <span></span>
+        {% endif %}
+        <span>{{ note.created_at.strftime('%b %d') }}</span>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="col-span-full text-center py-8">
+    <svg class="w-10 h-10 mx-auto mb-2" style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+    <p class="text-sm" style="color: var(--color-text-secondary);">No similar notes found.</p>
+    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Add more notes to see connections.</p>
+</div>
+{% endif %}
