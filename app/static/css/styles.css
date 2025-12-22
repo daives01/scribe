@@ -279,6 +279,15 @@ a:hover {
     background-color: rgb(239 68 68 / 0.2);
 }
 
+.btn-secondary {
+    background-color: rgb(107 114 128 / 0.1);
+    color: rgb(107 114 128);
+}
+
+.btn-secondary:hover {
+    background-color: rgb(107 114 128 / 0.2);
+}
+
 /* Transitions for Theme Changes */
 .theme-transition * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;

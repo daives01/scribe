@@ -2,7 +2,7 @@
 
 import uuid
 from pathlib import Path
-from typing import Annotated, cast
+from typing import Annotated, Union, cast
 
 from fastapi import (
     APIRouter,
@@ -10,6 +10,7 @@ from fastapi import (
     File,
     HTTPException,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
@@ -194,13 +195,52 @@ async def retry_failed_note(
         raise e.to_http_exception()
 
 
-@router.delete("/notes/{note_id}", status_code=status.HTTP_200_OK)
+@router.patch("/notes/{note_id}/archive", response_model=NoteResponse)
+async def archive_note(
+    note_id: int,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> NoteResponse:
+    """
+    Archive a note (soft delete - hide from recent/search).
+    """
+    assert current_user.id is not None
+    note_service = NoteService(session)
+    try:
+        note = note_service.archive_note(note_id, current_user.id)
+        await event_manager.broadcast(current_user.id, "note-archived", str(note_id))
+        return NoteResponse.model_validate(note)
+    except NotFoundError as e:
+        raise e.to_http_exception()
+
+
+@router.patch("/notes/{note_id}/unarchive", response_model=NoteResponse)
+async def unarchive_note(
+    note_id: int,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> NoteResponse:
+    """
+    Unarchive a note (restore from soft delete).
+    """
+    assert current_user.id is not None
+    note_service = NoteService(session)
+    try:
+        note = note_service.unarchive_note(note_id, current_user.id)
+        await event_manager.broadcast(current_user.id, "note-unarchived", str(note_id))
+        return NoteResponse.model_validate(note)
+    except NotFoundError as e:
+        raise e.to_http_exception()
+
+
+@router.delete("/notes/{note_id}", response_model=None)
 async def delete_note(
     note_id: int,
     session: SessionDep,
     current_user: CurrentUserDep,
     background_tasks: BackgroundTasks,
-) -> Response:
+    request: Request,
+) -> Union[dict, Response]:
     """
     Delete a note.
     """
@@ -209,7 +249,12 @@ async def delete_note(
     try:
         note_service.delete_note(note_id, current_user.id)
         await event_manager.broadcast(current_user.id, "note-deleted", str(note_id))
-        return Response(headers={"HX-Redirect": "/"})
+
+        # Return JSON for API calls, HTML redirect for HTMX
+        if request.headers.get("hx-request"):
+            return Response(headers={"HX-Redirect": "/"})
+        else:
+            return {"success": True}
     except NotFoundError as e:
         raise e.to_http_exception()
 

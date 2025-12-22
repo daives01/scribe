@@ -44,6 +44,9 @@ class Note(SQLModel, table=True):  # type: ignore
     )  # pending, transcribing, processing, completed, failed
     error_message: str | None = Field(default=None)
 
+    # Archive state
+    archived: bool = Field(default=False, index=True)
+
     # Timestamps
     created_at: datetime = Field(default_factory=_utc_now, index=True)
     updated_at: datetime = Field(default_factory=_utc_now)
@@ -54,4 +57,5 @@ class Note(SQLModel, table=True):  # type: ignore
     __table_args__ = (
         Index("ix_notes_user_status", "user_id", "processing_status"),
         Index("ix_notes_user_created", "user_id", "created_at"),
+        Index("ix_notes_user_archived_created", "user_id", "archived", "created_at"),
     )

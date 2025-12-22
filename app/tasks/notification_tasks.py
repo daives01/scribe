@@ -35,6 +35,10 @@ async def send_note_notification(note_id: int) -> None:
             logger.warning(f"Home Assistant not configured for user {note.user_id}")
             return
 
+        # At this point, all Home Assistant settings are guaranteed to be non-None
+        assert user_settings.homeassistant_token is not None
+        assert user_settings.homeassistant_device is not None
+
         title = f"Scribe: {note.tag}" if note.tag else "Scribe Note Reminder"
         message = (
             note.summary
@@ -51,10 +55,11 @@ async def send_note_notification(note_id: int) -> None:
 
         try:
             async with get_home_assistant_service(
-                str(user_settings.homeassistant_url), user_settings.homeassistant_token
+                str(user_settings.homeassistant_url),
+                str(user_settings.homeassistant_token),
             ) as ha_service:
                 await ha_service.send_notification(
-                    device=user_settings.homeassistant_device,
+                    device=str(user_settings.homeassistant_device),
                     message=message,
                     title=title,
                     url=note_url,

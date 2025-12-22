@@ -3,7 +3,7 @@
 from datetime import datetime
 import json
 import logging
-from typing import Dict, Union
+from typing import TypedDict
 
 
 import httpx
@@ -14,6 +14,14 @@ from app.models.note import Note
 from app.utils.vector import serialize_vector
 
 logger = logging.getLogger(__name__)
+
+
+class SummaryResult(TypedDict):
+    """Result from generate_summary_and_tag."""
+
+    summary: str
+    tag: str | None
+    notification_timestamp: datetime | None
 
 
 class OllamaService:
@@ -165,7 +173,7 @@ class OllamaService:
 
     async def generate_summary_and_tag(
         self, transcript: str, available_tags: list[str]
-    ) -> Dict[str, Union[str, datetime, None]]:
+    ) -> SummaryResult:
         """
         Generate a summary and tag for a transcript.
 

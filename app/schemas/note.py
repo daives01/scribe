@@ -29,6 +29,7 @@ class NoteResponse(BaseModel):
     notification_timestamp: datetime | None
     processing_status: str
     error_message: str | None
+    archived: bool
     created_at: datetime
     updated_at: datetime
 

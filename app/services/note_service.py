@@ -3,7 +3,7 @@
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import desc, text
+from sqlalchemy import text
 from sqlmodel import Session, func, select
 
 from app.models.note import Note
@@ -81,15 +81,18 @@ class NoteService:
         Returns:
             Tuple of (notes list, total count)
         """
-        # Get total count
-        count_statement = select(func.count()).where(Note.user_id == user_id)
+        # Get total count (exclude archived)
+        count_statement = select(func.count()).where(
+            Note.user_id == user_id,
+            Note.archived == False,  # noqa: E712
+        )
         total = self.session.exec(count_statement).one()
 
-        # Get paginated notes
+        # Get paginated notes (exclude archived)
         statement = (
             select(Note)
-            .where(Note.user_id == user_id)
-            .order_by(desc(Note.created_at))
+            .where(Note.user_id == user_id, Note.archived == False)  # noqa: E712
+            .order_by(Note.created_at.desc())  # type: ignore
             .offset(skip)
             .limit(limit)
         )
@@ -203,6 +206,7 @@ class NoteService:
                    vec_distance_cosine(embedding, :query_vec) as distance
             FROM notes
             WHERE user_id = :user_id
+              AND archived = 0
               AND embedding IS NOT NULL
               AND length(embedding) = :vec_len
             ORDER BY distance ASC
@@ -270,6 +274,7 @@ class NoteService:
                    vec_distance_cosine(embedding, :query_vec) as distance
             FROM notes
             WHERE user_id = :user_id
+              AND archived = 0
               AND embedding IS NOT NULL
               AND id != :note_id
               AND length(embedding) = :vec_len
@@ -302,3 +307,47 @@ class NoteService:
 
         logger.info(f"Found {len(notes)} similar notes for note {note_id}")
         return notes
+
+    def archive_note(self, note_id: int, user_id: int) -> Note:
+        """
+        Archive a note (soft delete - hide from recent/search).
+
+        Args:
+            note_id: Note ID to archive
+            user_id: Owner user ID for verification
+
+        Returns:
+            Updated Note instance
+
+        Raises:
+            NotFoundError: If note not found or doesn't belong to user
+        """
+        note = self.get_note(note_id, user_id)
+        note.archived = True
+        note.updated_at = datetime.now(UTC)
+        self.session.add(note)
+        self.session.commit()
+        self.session.refresh(note)
+        return note
+
+    def unarchive_note(self, note_id: int, user_id: int) -> Note:
+        """
+        Unarchive a note (restore from soft delete).
+
+        Args:
+            note_id: Note ID to unarchive
+            user_id: Owner user ID for verification
+
+        Returns:
+            Updated Note instance
+
+        Raises:
+            NotFoundError: If note not found or doesn't belong to user
+        """
+        note = self.get_note(note_id, user_id)
+        note.archived = False
+        note.updated_at = datetime.now(UTC)
+        self.session.add(note)
+        self.session.commit()
+        self.session.refresh(note)
+        return note

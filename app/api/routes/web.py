@@ -515,3 +515,314 @@ async def update_settings_web(
     session.commit()
 
     return HTMLResponse(content="", status_code=200)
+
+
+@router.post("/web/api-token", response_class=HTMLResponse)
+async def generate_api_token_web(
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Generate a new API token (HTMX).
+
+    Returns HTML for the updated API token section.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    # Generate a new secure token (same logic as API route)
+    import secrets
+
+    api_token = secrets.token_urlsafe(32)
+
+    # Update user's API token
+    user.api_token = api_token
+    session.add(user)
+    session.commit()
+
+    # Return HTML for the token display section
+    html_content = f"""
+    <div class="p-4 rounded-lg" style="background-color: var(--color-bg-tertiary);">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium">Your API Token</span>
+            <button hx-delete="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
+                hx-confirm="Revoke this token? Any Siri shortcuts using it will stop working."
+                class="text-xs px-2 py-1 rounded"
+                style="color: var(--color-error); background-color: rgb(239 68 68 / 0.1);">
+                Revoke
+            </button>
+        </div>
+        <code class="block p-3 rounded text-sm break-all"
+            style="background-color: var(--color-bg-primary);">{api_token}</code>
+    </div>
+    """
+    return HTMLResponse(content=html_content)
+
+
+@router.delete("/web/api-token", response_class=HTMLResponse)
+async def revoke_api_token_web(
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Revoke the current API token (HTMX).
+
+    Returns HTML for the updated API token section (generate button).
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    # Revoke the API token
+    user.api_token = None
+    session.add(user)
+    session.commit()
+
+    # Return HTML for the generate button section
+    html_content = """
+    <button hx-post="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
+        class="w-full py-3 rounded-lg font-medium text-white transition flex items-center justify-center gap-2"
+        style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+        </svg>
+        Generate API Token
+    </button>
+    """
+    return HTMLResponse(content=html_content)
+
+
+@router.patch("/web/notes/{note_id}/archive", response_class=HTMLResponse)
+async def archive_note_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """Archive a note (HTMX)."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+    assert user.id is not None
+
+    note_service = NoteService(session)
+    try:
+        note_service.archive_note(note_id, user.id)
+        return HTMLResponse(content="", status_code=200)
+    except NotFoundError:
+        return HTMLResponse(content="Note not found", status_code=404)
+
+
+@router.patch("/web/notes/{note_id}/unarchive", response_class=HTMLResponse)
+async def unarchive_note_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """Unarchive a note (HTMX)."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+    assert user.id is not None
+
+    note_service = NoteService(session)
+    try:
+        note_service.unarchive_note(note_id, user.id)
+        return HTMLResponse(content="", status_code=200)
+    except NotFoundError:
+        return HTMLResponse(content="Note not found", status_code=404)
+
+
+@router.get("/web/notes/recent", response_class=HTMLResponse)
+async def get_recent_notes_web(
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Get recent notes for the home page (HTMX).
+
+    Returns HTML for note cards, excluding archived notes.
+    Used for initial page load and real-time updates via SSE.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        # Get recent notes (exclude archived, show more on home page)
+        notes, total = note_service.list_notes(user.id, skip=0, limit=100)
+
+        return templates.TemplateResponse(
+            "components/note_card.html",
+            {
+                "request": request,
+                "notes": notes,
+                "total": total,
+                "show_count": True,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Error loading recent notes: {e}")
+        # Return empty state on error
+        return templates.TemplateResponse(
+            "components/note_card.html",
+            {
+                "request": request,
+                "notes": [],
+                "total": 0,
+                "show_count": True,
+            },
+        )
+
+
+@router.get("/web/notes/{note_id}", response_class=HTMLResponse)
+async def get_note_detail_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """
+    Get note detail page (HTMX).
+
+    Returns the full note detail page HTML.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.get_note(note_id, user.id)
+        return templates.TemplateResponse(
+            "note_detail.html",
+            {
+                "request": request,
+                "note": note,
+                "current_user": user,
+            },
+        )
+    except NotFoundError:
+        return HTMLResponse(content="Note not found", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error loading note detail: {e}")
+        return HTMLResponse(content="Error loading note", status_code=500)
+
+
+@router.get("/web/notes/{note_id}/card", response_class=HTMLResponse)
+async def get_note_card_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Get note card HTML for SSE updates (HTMX).
+
+    Returns HTML for a single note card, used for live updates.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.get_note(note_id, user.id)
+        return templates.TemplateResponse(
+            "components/note_card.html",
+            {
+                "request": request,
+                "notes": [note],
+                "total": 1,
+                "show_count": False,
+            },
+        )
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error loading note card: {e}")
+        return HTMLResponse(content="", status_code=500)
+
+
+@router.get("/web/notes/{note_id}/status", response_class=HTMLResponse)
+async def get_note_status_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Get note status badge HTML for SSE updates (HTMX).
+
+    Returns HTML for the status badge, used for live updates.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.get_note(note_id, user.id)
+        return templates.TemplateResponse(
+            "components/status_badge.html",
+            {
+                "request": request,
+                "note": note,
+                "note_id": note_id,
+            },
+        )
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error loading note status: {e}")
+        return HTMLResponse(content="", status_code=500)
+
+
+@router.get("/web/notes/{note_id}/content", response_class=HTMLResponse)
+async def get_note_content_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: Optional[str] = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Get note content HTML for SSE updates (HTMX).
+
+    Returns HTML for the note content, used for live updates.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.get_note(note_id, user.id)
+        return templates.TemplateResponse(
+            "partials/note_content.html",
+            {
+                "request": request,
+                "note": note,
+            },
+        )
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error loading note content: {e}")
+        return HTMLResponse(content="", status_code=500)

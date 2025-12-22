@@ -6,6 +6,7 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
+
 from sqlmodel import Session, select
 
 from app.database import engine
@@ -95,15 +96,16 @@ async def process_new_note(note_id: int) -> None:
                 api_key=user_settings.ollama_api_key,
             )
 
-            # Step 4: Generate summary and tag
+            # Get available tags
             available_tags = json.loads(user_settings.custom_tags)
 
+            # Step 4: Generate summary and tag
             summary_result = await ollama.generate_summary_and_tag(
                 note.raw_transcript, available_tags
             )
-            note.summary = summary_result.get("summary")
-            note.tag = summary_result.get("tag")
-            note.notification_timestamp = summary_result.get("notification_timestamp")
+            note.summary = summary_result["summary"]
+            note.tag = summary_result["tag"]
+            note.notification_timestamp = summary_result["notification_timestamp"]
 
             # Step 5: Generate embedding
             embedding = await ollama.generate_embedding(note.raw_transcript)
