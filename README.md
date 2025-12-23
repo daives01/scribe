@@ -25,6 +25,29 @@ A self-hosted, multi-tenant voice note application that captures voice recording
 
 ## Quick Start
 
+### One-line startup (recommended)
+
+```bash
+./start.sh
+```
+
+This script will:
+- Check that [uv](https://github.com/astral-sh/uv) is installed
+- Ensure Python 3.12+ is available (uv will download if needed)
+- Create `.env` from `.env.example` with a generated secret key
+- Run database migrations
+- Start the production server on http://localhost:8000
+
+### Auto-start on boot/login (macOS)
+
+1. Open **Automator** → File → New → **Application**
+2. Add **Run Shell Script** action
+3. Paste: `/path/to/scribe/start.sh`
+4. Save as "Scribe.app"
+5. Add to **System Settings** → **General** → **Login Items**
+
+### Manual setup (if needed)
+
 1. **Clone and setup:**
    ```bash
    cd voice-notes
@@ -44,7 +67,7 @@ A self-hosted, multi-tenant voice note application that captures voice recording
 
 4. **Start the server:**
    ```bash
-   uv run fastapi dev app/main.py
+   uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
 
 5. **Open API docs:**

@@ -235,11 +235,18 @@ JSON response:"""
                     except (ValueError, TypeError):
                         logger.warning(f"Failed to parse timestamp: {timestamp}")
 
+                # Normalize tag to match available tags (case-insensitive)
+                tag = result.get("tag", available_tags[0] if available_tags else None)
+                if tag and available_tags:
+                    tag_lower = tag.lower()
+                    for available_tag in available_tags:
+                        if available_tag.lower() == tag_lower:
+                            tag = available_tag
+                            break
+
                 return {
                     "summary": result.get("summary", ""),
-                    "tag": result.get(
-                        "tag", available_tags[0] if available_tags else None
-                    ),
+                    "tag": tag,
                     "notification_timestamp": notification_time,
                 }
             except json.JSONDecodeError:

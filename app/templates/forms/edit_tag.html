@@ -1,17 +1,15 @@
-<!-- Edit Tag Form -->
-<form hx-patch="/api/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
-    hx-on::after-request="if(event.detail.successful) showToast('Tag updated!', 'success')"
-    class="inline-flex items-center gap-2 p-2 rounded-xl" style="background-color: var(--color-bg-secondary);">
-    <select name="tag" class="px-4 py-2 rounded-lg border text-sm font-medium appearance-none cursor-pointer pr-10"
+<form hx-patch="/web/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
+    hx-on::after-request="document.body.dispatchEvent(new CustomEvent('htmx:toast', {detail: {message: 'Tag updated', type: 'success'}}))"
+    class="inline-flex items-center gap-2">
+    <select name="tag" class="px-4 py-2 rounded-lg border text-sm font-medium appearance-none cursor-pointer pr-8 transition-shadow focus:shadow-lg"
         style="border-color: var(--color-border); background-color: var(--color-bg-primary);"
-        onchange="this.form.requestSubmit()">
+        onchange="this.form.requestSubmit()" autofocus>
         <option value="">No tag</option>
         {% for tag in available_tags %}
         <option value="{{ tag }}" {% if note.tag==tag %}selected{% endif %}>{{ tag }}</option>
         {% endfor %}
     </select>
-
-    <button type="button" hx-get="/web/notes/{{ note.id }}" hx-target="main"
+    <button type="button" hx-get="/web/notes/{{ note.id }}/content" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
         class="p-2 rounded-lg transition hover:opacity-80"
         style="color: var(--color-text-tertiary); background-color: var(--color-bg-tertiary);">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

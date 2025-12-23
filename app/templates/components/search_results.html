@@ -19,7 +19,6 @@
     <div class="max-h-[400px] overflow-y-auto">
         {% for note in results %}
         <div hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main"
-            onclick="document.getElementById('search-results').innerHTML = ''"
             class="p-3 rounded-xl cursor-pointer hover:bg-tertiary transition flex items-start gap-3 group">
             <div class="p-2 rounded-lg bg-secondary group-hover:bg-primary transition shadow-sm">
                 <svg class="w-4 h-4" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"

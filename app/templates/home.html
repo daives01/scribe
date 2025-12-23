@@ -5,10 +5,23 @@
 {% block content %}
 <div class="space-y-8">
 
+    <!-- Quick Note Input -->
+    <div class="max-w-3xl mx-auto w-full">
+        <form id="note-form" hx-post="/web/notes/text" hx-target="#notes-list" hx-swap="afterbegin" class="relative">
+            <textarea name="text" id="note-input" rows="3" placeholder="Type a note and press Enter to create..."
+                class="w-full px-6 py-4 rounded-2xl border-2 text-lg shadow-sm focus:shadow-md transition-all outline-none resize-none"
+                style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
+                data-auto-resize></textarea>
+            <div class="absolute bottom-4 right-4 text-xs" style="color: var(--color-text-tertiary);">
+                Press Enter to create
+            </div>
+        </form>
+    </div>
+
     <!-- Search -->
-    <div class="relative max-w-3xl mx-auto w-full">
-        <form class="relative">
-            <input type="text" name="q" placeholder="Search your notes..."
+    <div class="relative max-w-3xl mx-auto w-full" id="search-container">
+        <form class="relative" id="search-form">
+            <input type="text" name="q" id="search-input" placeholder="Search your notes..."
                 class="w-full px-6 py-4 pl-14 rounded-2xl border-2 text-xl shadow-sm focus:shadow-md transition-all outline-none"
                 style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
                 hx-post="/web/search" hx-trigger="input delay:500ms" hx-target="#search-results"

@@ -59,6 +59,21 @@ def test_update_note_tag(client: TestClient, auth_headers, test_note):
     assert data["raw_transcript"] == test_note.raw_transcript
 
 
+def test_update_note_summary(client: TestClient, auth_headers, test_note):
+    """Test updating a note's summary."""
+    new_summary = "This is an updated summary."
+    response = client.patch(
+        f"/api/notes/{test_note.id}",
+        headers=auth_headers,
+        json={"summary": new_summary},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"] == new_summary
+    # Transcript should remain unchanged
+    assert data["raw_transcript"] == test_note.raw_transcript
+
+
 def test_update_note_transcript(client: TestClient, auth_headers, test_note):
     """Test updating a note's transcript."""
     new_transcript = "This is an updated transcript."

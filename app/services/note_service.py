@@ -26,12 +26,15 @@ class NoteService:
         """
         self.session = session
 
-    def create_note(self, user_id: int, audio_path: str | None = None) -> Note:
+    def create_note(
+        self, user_id: int, raw_transcript: str = "", audio_path: str | None = None
+    ) -> Note:
         """
         Create a new note with pending status.
 
         Args:
             user_id: Owner user ID
+            raw_transcript: Initial transcript text (for text notes)
             audio_path: Optional path to saved audio file
 
         Returns:
@@ -39,7 +42,7 @@ class NoteService:
         """
         note = Note(
             user_id=user_id,
-            raw_transcript="",
+            raw_transcript=raw_transcript,
             audio_path=audio_path,
             processing_status="pending",
         )
@@ -104,6 +107,7 @@ class NoteService:
         note_id: int,
         user_id: int,
         raw_transcript: str | None = None,
+        summary: str | None = None,
         tag: str | None = None,
     ) -> Note:
         """
@@ -127,6 +131,9 @@ class NoteService:
             note.raw_transcript = raw_transcript
             # Mark for re-processing if transcript changed
             note.processing_status = "pending"
+
+        if summary is not None:
+            note.summary = summary
 
         if tag is not None:
             note.tag = tag

@@ -292,3 +292,43 @@ a:hover {
 .theme-transition * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
 }
+
+/* Shimmer Loading Effect */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.shimmer {
+    background: linear-gradient(
+        90deg,
+        var(--color-bg-tertiary) 25%,
+        var(--color-bg-tertiary) 50%,
+        var(--color-border) 50%,
+        var(--color-border) 75%,
+        var(--color-bg-tertiary) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+.shimmer-title {
+    height: 1.5rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.shimmer-text {
+    height: 1rem;
+    width: 100%;
+}
+
+.shimmer-text-short {
+    height: 1rem;
+    width: 70%;
+}

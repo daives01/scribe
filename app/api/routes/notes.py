@@ -143,6 +143,7 @@ async def update_note(
             note_id,
             current_user.id,
             raw_transcript=update_data.raw_transcript,
+            summary=update_data.summary,
             tag=update_data.tag,
         )
 

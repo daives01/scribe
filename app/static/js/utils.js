@@ -1,5 +1,35 @@
 // Scribe Utility Functions
 
+// Handle Enter key for note creation
+document.addEventListener('DOMContentLoaded', function() {
+    const noteInput = document.getElementById('note-input');
+    const noteForm = document.getElementById('note-form');
+
+    if (noteInput && noteForm) {
+        noteInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                const text = noteInput.value.trim();
+                if (text) {
+                    noteForm.requestSubmit();
+                    noteInput.value = '';
+                }
+            }
+        });
+    }
+});
+
+// Close search results when clicking outside
+document.addEventListener('click', function(event) {
+    const searchContainer = document.getElementById('search-container');
+    const searchResults = document.getElementById('search-results');
+
+    if (searchContainer && searchResults &&
+        !searchContainer.contains(event.target)) {
+        searchResults.innerHTML = '';
+    }
+});
+
 // Toast Notifications
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
@@ -19,6 +49,11 @@ function showToast(message, type = 'info', duration = 3000) {
 }
 
 // HTMX Event Handlers
+document.body.addEventListener('htmx:toast', function (event) {
+    const { message, type } = event.detail;
+    showToast(message, type || 'success');
+});
+
 document.body.addEventListener('htmx:afterSwap', function (event) {
     // Check for toast triggers in response headers
     const trigger = event.detail.xhr.getResponseHeader('HX-Trigger');
@@ -66,19 +101,21 @@ function formatRelativeTime(dateString) {
 }
 
 // Format reminder time for future timestamps
+// Returns null if past (should hide badge)
 function formatReminderTime(dateString) {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+
     const now = new Date();
     const diffMs = date - now;
 
-    if (diffMs < 0) return 'overdue'; // Past reminder
+    if (diffMs < 0) return null;
 
-    const diffSecs = Math.floor(diffMs / 1000);
-    const diffMins = Math.floor(diffSecs / 60);
+    const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffSecs < 60) return 'in moments';
+    if (diffMins < 1) return 'soon';
     if (diffMins < 60) return `in ${diffMins}m`;
     if (diffHours < 24) return `in ${diffHours}h`;
     if (diffDays < 7) return `in ${diffDays}d`;
@@ -120,12 +157,17 @@ document.body.addEventListener('htmx:afterSwap', function (event) {
         textarea.addEventListener('input', () => autoResizeTextarea(textarea));
         autoResizeTextarea(textarea);
     });
+});
 
-    // Initialize reminder times
-    event.detail.target.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
+// HTMX after settle - initialize reminder times (fires after DOM is fully updated)
+document.body.addEventListener('htmx:afterSettle', function (event) {
+    document.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
         const reminderTime = element.dataset.reminder;
-        if (reminderTime) {
-            element.textContent = formatReminderTime(reminderTime);
+        const formatted = formatReminderTime(reminderTime);
+        if (formatted) {
+            element.textContent = formatted;
+        } else {
+            element.closest('.reminder-badge').remove();
         }
     });
 });
@@ -134,8 +176,24 @@ document.body.addEventListener('htmx:afterSwap', function (event) {
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
         const reminderTime = element.dataset.reminder;
-        if (reminderTime) {
-            element.textContent = formatReminderTime(reminderTime);
+        const formatted = formatReminderTime(reminderTime);
+        if (formatted) {
+            element.textContent = formatted;
+        } else {
+            element.closest('.reminder-badge').remove();
         }
     });
+
+    // Update reminder times every minute
+    setInterval(function() {
+        document.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
+            const reminderTime = element.dataset.reminder;
+            const formatted = formatReminderTime(reminderTime);
+            if (formatted) {
+                element.textContent = formatted;
+            } else {
+                element.closest('.reminder-badge').remove();
+            }
+        });
+    }, 60000);
 });

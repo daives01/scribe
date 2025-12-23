@@ -1,19 +1,27 @@
-<!-- Edit Summary Form -->
-<form hx-patch="/api/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
-    hx-on::after-request="if(event.detail.successful) showToast('Summary updated!', 'success')" class="p-4 rounded-xl"
-    style="background-color: var(--color-bg-secondary);">
-    <input type="text" name="summary" value="{{ note.summary or '' }}" placeholder="Enter a short summary..."
-        class="w-full text-3xl font-bold bg-transparent border-b-2 focus:outline-none pb-2"
-        style="border-color: var(--color-accent-primary);" autofocus />
-    <div class="flex items-center gap-2 mt-4">
-        <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg text-white transition hover:opacity-90"
-            style="background-color: var(--color-accent-primary);">
-            Save
-        </button>
-        <button type="button" hx-get="/web/notes/{{ note.id }}" hx-target="main"
-            class="px-4 py-2 text-sm font-medium rounded-lg transition hover:opacity-80"
-            style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
-            Cancel
-        </button>
+<form hx-patch="/web/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
+    hx-on::after-request="document.body.dispatchEvent(new CustomEvent('htmx:toast', {detail: {message: 'Summary updated', type: 'success'}}))"
+    class="p-4 rounded-xl" style="background-color: var(--color-bg-secondary);">
+    <div class="flex items-start gap-3">
+        <div class="flex-1">
+            <input type="text" name="summary" value="{{ note.summary or '' }}" placeholder="Enter a short summary..."
+                class="w-full text-3xl font-bold bg-transparent border-b-2 focus:outline-none pb-2 transition-colors"
+                style="border-color: var(--color-accent-primary);" autofocus />
+        </div>
+        <div class="flex items-center gap-2 mt-1">
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg text-white transition hover:opacity-90 flex items-center gap-1"
+                style="background-color: var(--color-accent-primary);">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save
+            </button>
+            <button type="button" hx-get="/web/notes/{{ note.id }}/content" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
+                class="px-3 py-2 text-sm font-medium rounded-lg transition hover:opacity-80"
+                style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
     </div>
 </form>

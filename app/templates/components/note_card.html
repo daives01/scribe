@@ -72,46 +72,68 @@
      </div>
 
     <!-- Summary or Transcript Preview -->
-    <h3 class="font-semibold text-lg mb-2 line-clamp-2">
-        {% if note.summary %}
-        {{ note.summary }}
-        {% elif note.raw_transcript %}
-        {{ note.raw_transcript[:60] }}{% if note.raw_transcript|length > 60 %}...{% endif %}
-        {% else %}
-        <span style="color: var(--color-text-tertiary);">Processing...</span>
-        {% endif %}
-    </h3>
+    {% if note.processing_status == "completed" %}
+        <h3 class="font-semibold text-lg mb-2 line-clamp-2">
+            {% if note.summary %}
+            {{ note.summary }}
+            {% elif note.raw_transcript %}
+            {{ note.raw_transcript[:60] }}{% if note.raw_transcript|length > 60 %}...{% endif %}
+            {% endif %}
+        </h3>
 
-    <!-- Transcript Preview (if summary exists) -->
-    {% if note.summary and note.raw_transcript %}
-    <p class="text-sm mb-3 line-clamp-2" style="color: var(--color-text-secondary);">
-        {{ note.raw_transcript[:100] }}{% if note.raw_transcript|length > 100 %}...{% endif %}
-    </p>
+        <!-- Transcript Preview (if summary exists) -->
+        {% if note.summary and note.raw_transcript %}
+        <p class="text-sm mb-3 line-clamp-2" style="color: var(--color-text-secondary);">
+            {{ note.raw_transcript[:100] }}{% if note.raw_transcript|length > 100 %}...{% endif %}
+        </p>
+        {% endif %}
+    {% else %}
+        <h3 class="font-semibold text-lg mb-2">
+            <div class="shimmer shimmer-title"></div>
+        </h3>
+        <p class="text-sm mb-3">
+            <div class="shimmer shimmer-text"></div>
+            <div class="shimmer shimmer-text-short mt-2"></div>
+        </p>
     {% endif %}
 
     <!-- Footer: Tag, Reminder & Timestamp -->
     <div class="flex items-center justify-between mt-4">
         <div class="flex items-center gap-2">
-            {% if note.notification_timestamp %}
-            <span class="reminder-badge" title="{{ note.notification_timestamp.strftime('%Y-%m-%d %H:%M') }}">
-                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span class="reminder-text" data-reminder="{{ note.notification_timestamp.isoformat() }}">
-                    {% if note.processing_status == "completed" %}
-                    <!-- Will be set by JavaScript -->
-                    {% else %}
-                    Scheduled
-                    {% endif %}
+            {% if note.processing_status == "completed" %}
+                {% if note.notification_timestamp %}
+                <span class="reminder-badge" title="{{ note.notification_timestamp.strftime('%Y-%m-%d %H:%M') }}">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="reminder-text" data-reminder="{{ note.notification_timestamp.isoformat() }}"></span>
                 </span>
-            </span>
-            {% endif %}
+                {% endif %}
 
-            {% if note.tag %}
-            <span class="tag-badge">
-                {{ note.tag }}
-            </span>
+                {% if note.tag %}
+                <span class="tag-badge">
+                    {{ note.tag }}
+                </span>
+                {% endif %}
+            {% else %}
+                {% if note.notification_timestamp %}
+                <span class="reminder-badge" title="{{ note.notification_timestamp.strftime('%Y-%m-%d %H:%M') }}">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="reminder-text" data-reminder="{{ note.notification_timestamp.isoformat() }}"></span>
+                </span>
+                {% endif %}
+                {% if note.tag %}
+                <span class="tag-badge">
+                    {{ note.tag }}
+                </span>
+                {% endif %}
+                {% if not note.notification_timestamp and not note.tag %}
+                <div class="shimmer" style="width: 60px; height: 24px; border-radius: 9999px;"></div>
+                {% endif %}
             {% endif %}
         </div>
 
@@ -120,7 +142,9 @@
         </span>
     </div>
 </div>
-{% else %}
+{% endfor %}
+
+{% if not notes %}
 <!-- Empty State -->
 <div class="col-span-full text-center py-16">
     <svg class="w-16 h-16 mx-auto mb-4" style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24"
@@ -131,7 +155,7 @@
     <h3 class="text-xl font-semibold mb-2">No notes yet</h3>
     <p style="color: var(--color-text-secondary);">Upload a voice note to get started</p>
 </div>
-{% endfor %}
+{% endif %}
 
 {% if show_count and notes %}
 <script>

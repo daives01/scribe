@@ -16,6 +16,7 @@ class NoteUpdate(BaseModel):
     """Schema for note updates."""
 
     raw_transcript: str | None = None
+    summary: str | None = None
     tag: str | None = None
 
 

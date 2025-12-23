@@ -1,44 +1,45 @@
-<!-- Edit Transcript Form -->
-<form hx-patch="/api/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
-    hx-on::after-request="if(event.detail.successful) showToast('Transcript updated!', 'success')"
-    class="p-6 rounded-xl" style="background-color: var(--color-bg-secondary);">
-    <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary);">
-            Edit Transcript
-        </h3>
-        <span class="text-xs px-2 py-1 rounded"
-            style="background-color: var(--color-bg-tertiary); color: var(--color-text-tertiary);">
-            Editing will trigger re-processing
-        </span>
-    </div>
-
-    <textarea name="raw_transcript" rows="10" class="w-full p-4 rounded-lg border text-lg leading-relaxed resize-y"
-        style="border-color: var(--color-border); background-color: var(--color-bg-primary); min-height: 200px;"
-        placeholder="Enter transcript..." data-auto-resize autofocus>{{ note.raw_transcript }}</textarea>
-
-    <div class="flex items-center justify-between mt-4">
-        <p class="text-xs" style="color: var(--color-text-tertiary);">
-            <svg class="w-4 h-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Summary, tag, and similar notes will be regenerated
-        </p>
-
-        <div class="flex items-center gap-2">
-            <button type="button" hx-get="/web/notes/{{ note.id }}" hx-target="main"
-                class="px-4 py-2 text-sm font-medium rounded-lg transition hover:opacity-80"
-                style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
-                Cancel
-            </button>
-            <button type="submit"
-                class="px-4 py-2 text-sm font-medium rounded-lg text-white transition hover:opacity-90 flex items-center gap-2"
-                style="background-color: var(--color-accent-primary);">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+<form hx-patch="/web/notes/{{ note.id }}" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
+    hx-on::after-request="document.body.dispatchEvent(new CustomEvent('htmx:toast', {detail: {message: 'Transcript updated and reprocessing started', type: 'success'}}))"
+    class="space-y-4">
+    <div class="p-4 rounded-xl" style="background-color: var(--color-bg-secondary);">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Save Changes
-            </button>
+                <h3 class="font-semibold">Edit Transcript</h3>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full font-medium" style="background-color: rgb(59 130 246 / 0.15); color: rgb(59 130 246);">
+                Will trigger re-processing
+            </span>
+        </div>
+
+        <textarea name="raw_transcript" rows="8" class="w-full p-4 rounded-lg text-lg leading-relaxed resize-y transition-shadow focus:shadow-lg"
+            style="border: 1px solid var(--color-border); background-color: var(--color-bg-primary); min-height: 200px;"
+            placeholder="Enter transcript..." autofocus>{{ note.raw_transcript }}</textarea>
+
+        <div class="flex items-center justify-between mt-4 pt-4" style="border-top: 1px solid var(--color-border);">
+            <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-tertiary);">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Summary, tag, and embedding will be regenerated
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" hx-get="/web/notes/{{ note.id }}/content" hx-target="#note-content-{{ note.id }}" hx-swap="outerHTML"
+                    class="px-4 py-2 text-sm font-medium rounded-lg transition hover:opacity-80"
+                    style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 text-sm font-medium rounded-lg text-white transition hover:opacity-90 flex items-center gap-2"
+                    style="background-color: var(--color-accent-primary);">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
         </div>
     </div>
 </form>

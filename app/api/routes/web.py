@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Annotated, Optional, cast
 
-from fastapi import APIRouter, Cookie, Depends, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -19,6 +19,8 @@ from app.services.auth_service import (
 )
 from app.services.note_service import NoteService
 from app.services.ollama_service import get_ollama_service
+from app.tasks.processing_tasks import process_new_note
+from app.utils.events import event_manager
 from app.utils.exceptions import AuthenticationError, NotFoundError
 
 router = APIRouter(tags=["web"])
@@ -40,6 +42,7 @@ templates.env.filters["from_json"] = from_json
 
 # Type alias for session dependency
 SessionDep = Annotated[Session, Depends(get_db)]
+BackgroundTasksDep = Annotated[BackgroundTasks, Depends()]
 
 
 # ============= Cookie-based Auth Helpers =============
@@ -313,6 +316,56 @@ async def edit_note_field(
         )
     except NotFoundError:
         return HTMLResponse(content="Note not found", status_code=404)
+
+
+@router.patch("/web/notes/{note_id}", response_class=HTMLResponse)
+async def update_note_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    background_tasks: BackgroundTasks,
+    access_token: Optional[str] = Cookie(default=None),
+    raw_transcript: Annotated[str | None, Form()] = None,
+    summary: Annotated[str | None, Form()] = None,
+    tag: Annotated[str | None, Form()] = None,
+):
+    """
+    Update a note via web form (HTMX).
+
+    Returns the updated note content HTML.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.update_note(
+            note_id,
+            user.id,
+            raw_transcript=raw_transcript,
+            summary=summary,
+            tag=tag,
+        )
+
+        # If transcript was updated, trigger reprocessing
+        if raw_transcript is not None:
+            background_tasks.add_task(process_new_note, cast(int, note.id))
+
+        return templates.TemplateResponse(
+            "partials/note_content.html",
+            {
+                "request": request,
+                "note": note,
+            },
+        )
+    except NotFoundError:
+        return HTMLResponse(content="Note not found", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error updating note: {e}")
+        return HTMLResponse(content="Error updating note", status_code=500)
 
 
 # ============= Search Routes =============
@@ -636,6 +689,48 @@ async def unarchive_note_web(
         return HTMLResponse(content="", status_code=200)
     except NotFoundError:
         return HTMLResponse(content="Note not found", status_code=404)
+
+
+@router.post("/web/notes/text", response_class=HTMLResponse)
+async def create_text_note_web(
+    request: Request,
+    session: SessionDep,
+    background_tasks: BackgroundTasks,
+    text: Annotated[str, Form()] = "",
+    access_token: Optional[str] = Cookie(default=None),
+):
+    """Create a new text note (HTMX)."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.create_note(
+            user_id=cast(int, user.id),
+            raw_transcript=text,
+            audio_path=None,
+        )
+
+        assert note.id is not None
+        background_tasks.add_task(process_new_note, note.id)
+
+        await event_manager.broadcast(cast(int, user.id), "note-created", str(note.id))
+
+        return templates.TemplateResponse(
+            "components/note_card.html",
+            {
+                "request": request,
+                "notes": [note],
+                "total": 1,
+                "show_count": False,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Error creating text note: {e}")
+        return HTMLResponse(content="", status_code=500)
 
 
 @router.get("/web/notes/recent", response_class=HTMLResponse)
