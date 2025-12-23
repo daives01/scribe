@@ -1,8 +1,7 @@
-<div class="p-2 rounded-2xl shadow-xl border-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-    style="background-color: var(--color-bg-secondary); border-color: var(--color-border);">
+<div class="p-2 rounded-lg shadow-xl border-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800">
 
     {% if error %}
-    <div class="p-4 text-sm flex items-center gap-3" style="color: var(--color-error);">
+    <div class="p-4 text-sm flex items-center gap-3 text-red-600 dark:text-red-400">
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -10,38 +9,38 @@
         <span>Error: {{ error }}</span>
     </div>
     {% elif results %}
-    <div class="flex items-center justify-between px-3 py-2 border-b mb-1" style="border-color: var(--color-border);">
-        <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-text-tertiary);">Quick
+    <div class="flex items-center justify-between px-3 py-2 border-b border-neutral-200 dark:border-neutral-800">
+        <span class="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-600">Quick
             Suggestions</span>
         <button onclick="document.getElementById('search-results').innerHTML = ''"
-            class="text-xs hover:text-accent transition"> Close </button>
+            class="text-xs hover:text-blue-600 dark:hover:text-blue-400 transition text-neutral-500 dark:text-neutral-400"> Close </button>
     </div>
     <div class="max-h-[400px] overflow-y-auto">
         {% for note in results %}
         <div hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main"
-            class="p-3 rounded-xl cursor-pointer hover:bg-tertiary transition flex items-start gap-3 group">
-            <div class="p-2 rounded-lg bg-secondary group-hover:bg-primary transition shadow-sm">
-                <svg class="w-4 h-4" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
+            class="p-3 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900 transition flex items-start gap-3 group">
+            <div class="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700 transition shadow-sm">
+                <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="font-semibold text-sm truncate">{{ note.summary or note.raw_transcript[:60] }}</p>
-                <p class="text-xs mt-0.5 line-clamp-1 opacity-60">
+                <p class="font-semibold text-sm truncate text-neutral-950 dark:text-neutral-50">{{ note.summary or note.raw_transcript[:60] }}</p>
+                <p class="text-xs mt-0.5 line-clamp-1 text-neutral-500 dark:text-neutral-400">
                     {{ note.raw_transcript[:100] }}
                 </p>
             </div>
-            <div class="text-[10px] whitespace-nowrap opacity-40 mt-1">
+            <div class="text-[10px] whitespace-nowrap text-neutral-400 dark:text-neutral-600 mt-1">
                 {{ note.created_at.strftime('%b %d') }}
             </div>
         </div>
         {% endfor %}
     </div>
-    {% else %}
-    <div class="p-8 text-center">
-        <p class="text-sm opacity-50">No matching notes found.</p>
-    </div>
-    {% endif %}
+     {% else %}
+     <div class="p-8 text-center">
+         <p class="text-sm text-neutral-500 dark:text-neutral-400">No matching notes found.</p>
+     </div>
+     {% endif %}
 </div>

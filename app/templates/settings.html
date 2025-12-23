@@ -7,317 +7,272 @@
 
     <!-- Header -->
     <div class="flex items-center gap-4">
-        <button hx-get="/" hx-push-url="true" hx-target="main" class="p-2 rounded-lg transition"
-            style="color: var(--color-text-secondary); background-color: var(--color-bg-secondary);">
+        <button hx-get="/" hx-push-url="true" hx-target="main" class="inline-flex items-center justify-center w-10 h-10 text-neutral-400 transition-colors duration-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
-        <h1 class="text-3xl font-bold">Settings</h1>
+        <h1 class="text-3xl font-bold text-neutral-950 dark:text-neutral-50">Settings</h1>
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-2 border-b" style="border-color: var(--color-border);">
-        <button onclick="switchTab('ai')" id="tab-ai" class="settings-tab active px-4 py-2 text-sm font-medium border-b-2 transition"
-            style="border-color: var(--color-accent-primary); color: var(--color-accent-primary);">
-            AI Configuration
-        </button>
-        <button onclick="switchTab('integration')" id="tab-integration" class="settings-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent transition"
-            style="color: var(--color-text-secondary);">
-            Integrations
-        </button>
-        <button onclick="switchTab('tags')" id="tab-tags" class="settings-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent transition"
-            style="color: var(--color-text-secondary);">
-            Tags
-        </button>
-    </div>
+    <div x-data="{ activeTab: 'ai' }">
+        <div class="relative w-full">
+            <div class="flex items-center justify-start w-full overflow-x-auto border-b border-neutral-200 dark:border-neutral-800">
+                <button @click="activeTab = 'ai'" class="relative px-4 py-2 text-sm font-medium transition-colors duration-200" :class="activeTab === 'ai' ? 'text-neutral-950 dark:text-neutral-50' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'">
+                    AI Configuration
+                    <div x-show="activeTab === 'ai'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute bottom-0 left-0 w-full h-0.5 bg-neutral-950 dark:bg-neutral-50"></div>
+                </button>
+                <button @click="activeTab = 'integration'" class="relative px-4 py-2 text-sm font-medium transition-colors duration-200" :class="activeTab === 'integration' ? 'text-neutral-950 dark:text-neutral-50' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'">
+                    Integrations
+                    <div x-show="activeTab === 'integration'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute bottom-0 left-0 w-full h-0.5 bg-neutral-950 dark:bg-neutral-50"></div>
+                </button>
+                <button @click="activeTab = 'tags'" class="relative px-4 py-2 text-sm font-medium transition-colors duration-200" :class="activeTab === 'tags' ? 'text-neutral-950 dark:text-neutral-50' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'">
+                    Tags
+                    <div x-show="activeTab === 'tags'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute bottom-0 left-0 w-full h-0.5 bg-neutral-950 dark:bg-neutral-50"></div>
+                </button>
+            </div>
+        </div>
 
-    <!-- AI Configuration Panel -->
-    <div id="panel-ai" class="settings-panel p-6 rounded-xl" style="background-color: var(--color-bg-secondary);">
-        <form id="settings-form" hx-patch="/web/settings" hx-swap="none"
-            hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
-            class="space-y-6">
+        <!-- AI Configuration Panel -->
+        <div x-show="activeTab === 'ai'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="p-6 mt-6 rounded-xl bg-neutral-50 dark:bg-neutral-900">
+            <form id="settings-form" hx-patch="/web/settings" hx-swap="none"
+                hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
+                class="space-y-6">
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Ollama URL</label>
-                    <input type="url" name="ollama_url" value="{{ settings.ollama_url }}"
-                        placeholder="http://localhost:11434" class="w-full px-4 py-3 rounded-lg border"
-                        style="border-color: var(--color-border);" hx-get="/web/settings/status"
-                        hx-trigger="keyup changed delay:1000ms" hx-target="#connection-status" hx-include="this" />
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The URL where your Ollama server is running (updates status automatically)</p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Ollama URL</label>
+                        <input type="url" name="ollama_url" value="{{ settings.ollama_url }}"
+                            placeholder="http://localhost:11434" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 appearance-none dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                            hx-get="/web/settings/status"
+                            hx-trigger="keyup changed delay:1000ms" hx-target="#connection-status" hx-include="this" />
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The URL where your Ollama server is running (updates status automatically)</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">LLM Model</label>
+                        <div class="relative">
+                            <select name="ollama_model" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 appearance-none dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                                hx-get="/web/settings/models"
+                                hx-trigger="load, change from:[name='ollama_url'] delay:1000ms" hx-include="[name='ollama_url']"
+                                hx-swap="innerHTML">
+                                <option value="{{ settings.ollama_model }}" selected>{{ settings.ollama_model }}</option>
+                            </select>
+                            <svg class="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The model to use for summarization and Q&A</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Embedding Model</label>
+                        <div class="relative">
+                            <input type="text" name="ollama_embedding_model" value="{{ settings.ollama_embedding_model }}"
+                                placeholder="nomic-embed-text" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                        </div>
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The model to use for semantic search (e.g., nomic-embed-text, all-minilm)</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">API Key (Optional)</label>
+                        <input type="password" name="ollama_api_key" value="{{ settings.ollama_api_key or '' }}"
+                            placeholder="••••••••" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">Only required if your Ollama instance requires authentication</p>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium mb-2">LLM Model</label>
-                    <div class="relative">
-                        <select name="ollama_model" class="w-full px-4 py-3 rounded-lg border appearance-none"
-                            style="border-color: var(--color-border);" hx-get="/web/settings/models"
-                            hx-trigger="load, change from:[name='ollama_url'] delay:1000ms" hx-include="[name='ollama_url']"
-                            hx-swap="innerHTML">
-                            <option value="{{ settings.ollama_model }}" selected>{{ settings.ollama_model }}</option>
-                        </select>
-                        <svg class="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                            style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <button type="submit"
+                    class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-neutral-400 dark:focus:ring-offset-neutral-900">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Settings
+                </button>
+            </form>
+
+            <!-- Connection Status -->
+            <div id="connection-status" hx-get="/web/settings/status" hx-trigger="load" hx-swap="innerHTML"
+                class="p-6 mt-6 rounded-xl bg-neutral-100 dark:bg-neutral-950">
+                <!-- Status loaded via HTMX -->
+            </div>
+        </div>
+
+        <!-- Integration Panel -->
+        <div x-show="activeTab === 'integration'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="p-6 mt-6 rounded-xl bg-neutral-50 dark:bg-neutral-900">
+
+            <!-- Siri / API Token -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <div class="p-2 rounded-lg bg-gradient-to-br from-red-500 to-orange-400">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The model to use for summarization and Q&A</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-2">Embedding Model</label>
-                    <div class="relative">
-                        <input type="text" name="ollama_embedding_model" value="{{ settings.ollama_embedding_model }}"
-                            placeholder="nomic-embed-text" class="w-full px-4 py-3 rounded-lg border"
-                            style="border-color: var(--color-border);" />
+                    <div>
+                        <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Mobile & Siri Integration</h2>
+                        <p class="text-sm text-neutral-500 dark:text-neutral-400">Record voice notes from your phone using Siri</p>
                     </div>
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The model to use for semantic search (e.g., nomic-embed-text, all-minilm)</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium mb-2">API Key (Optional)</label>
-                    <input type="password" name="ollama_api_key" value="{{ settings.ollama_api_key or '' }}"
-                        placeholder="••••••••" class="w-full px-4 py-3 rounded-lg border"
-                        style="border-color: var(--color-border);" />
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Only required if your Ollama instance requires authentication</p>
+                <div id="api-token-section" class="mt-4">
+                    {% if api_token %}
+                    <div class="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-950">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-neutral-950 dark:text-neutral-50">Your API Token</span>
+                            <button hx-delete="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
+                                hx-confirm="Revoke this token? Any Siri shortcuts using it will stop working."
+                                class="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-red-600 transition-colors duration-200 rounded-md bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 dark:focus:ring-red-400 dark:focus:ring-offset-neutral-900">
+                                Revoke
+                            </button>
+                        </div>
+                        <code class="block p-3 text-sm break-all rounded bg-white dark:bg-neutral-950 text-neutral-950 dark:text-neutral-50">{{ api_token }}</code>
+                    </div>
+                    {% else %}
+                    <button hx-post="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
+                        class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-gradient-to-r from-red-500 to-orange-400 hover:from-red-600 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900">
+                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Generate API Token
+                    </button>
+                    {% endif %}
                 </div>
+
+                <details class="mt-4">
+                    <summary class="cursor-pointer font-medium flex items-center gap-2 text-neutral-950 dark:text-neutral-50 hover:text-neutral-700 dark:hover:text-neutral-300">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        How to set up Siri Shortcuts
+                    </summary>
+
+                    <div class="mt-4 p-4 space-y-4 text-sm rounded-lg bg-neutral-100 dark:bg-neutral-950">
+                        <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 1:</strong> Generate an API token above if you haven't already.</p>
+
+                        <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 2:</strong> Open the <strong>Shortcuts</strong> app on your iPhone/iPad.</p>
+
+                        <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 3:</strong> Create a new shortcut with these actions:</p>
+
+                        <ol class="list-decimal list-inside space-y-2 pl-2 text-neutral-950 dark:text-neutral-50">
+                            <li><strong>Record Audio</strong> - Records your voice note</li>
+                            <li><strong>Get Contents of URL</strong> - With these settings:
+                                <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-neutral-500 dark:text-neutral-400">
+                                    <li>URL: <code class="px-1 rounded bg-white dark:bg-neutral-950 text-neutral-950 dark:text-neutral-50">{{ server_url }}/api/upload</code></li>
+                                    <li>Method: <strong>POST</strong></li>
+                                    <li>Headers:
+                                        <ul class="list-disc list-inside pl-4">
+                                            <li><code>Authorization</code>: <code>Bearer YOUR_API_TOKEN</code></li>
+                                        </ul>
+                                    </li>
+                                    <li>Request Body: <strong>Form</strong>
+                                        <ul class="list-disc list-inside pl-4">
+                                            <li>Key: <code>audio_file</code>, Type: <strong>File</strong>, Value: <em>Recorded Audio</em></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ol>
+
+                        <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 4:</strong> Name your shortcut "Voice Note" or similar.</p>
+
+                        <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 5:</strong> Say "Hey Siri, Voice Note" to start recording!</p>
+
+                        <div class="p-3 mt-4 text-green-700 dark:text-green-400 rounded-lg bg-green-100 dark:bg-green-900/30">
+                            <strong>Tip:</strong> You can also add your shortcut to the Lock Screen, Home Screen, or Back Tap for quick access.
+                        </div>
+                    </div>
+                </details>
             </div>
 
-            <button type="submit"
-                class="w-full py-3 rounded-lg font-semibold text-white transition flex items-center justify-center gap-2"
-                style="background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-hover));">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Settings
-            </button>
-        </form>
-
-        <!-- Connection Status -->
-        <div id="connection-status" hx-get="/web/settings/status" hx-trigger="load" hx-swap="innerHTML"
-            class="mt-6 p-6 rounded-xl" style="background-color: var(--color-bg-tertiary);">
-            <!-- Status loaded via HTMX -->
-        </div>
-    </div>
-
-    <!-- Integration Panel -->
-    <div id="panel-integration" class="settings-panel p-6 rounded-xl hidden" style="background-color: var(--color-bg-secondary);">
-
-        <!-- Siri / API Token -->
-        <div class="mb-8">
-            <div class="flex items-center gap-3 pb-4 border-b" style="border-color: var(--color-border);">
-                <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);">
-                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <!-- Home Assistant -->
+            <form hx-patch="/web/settings" hx-swap="none"
+                hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
+                class="space-y-6">
+                <div class="flex items-center gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                    <svg class="w-6 h-6 text-neutral-950 dark:text-neutral-50" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
                     </svg>
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold">Mobile & Siri Integration</h2>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">Record voice notes from your phone using Siri</p>
-                </div>
-            </div>
-
-            <div id="api-token-section" class="mt-4">
-                {% if api_token %}
-                <div class="p-4 rounded-lg" style="background-color: var(--color-bg-tertiary);">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium">Your API Token</span>
-                        <button hx-delete="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
-                            hx-confirm="Revoke this token? Any Siri shortcuts using it will stop working."
-                            class="text-xs px-2 py-1 rounded"
-                            style="color: var(--color-error); background-color: rgb(239 68 68 / 0.1);">
-                            Revoke
-                        </button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Home Assistant Notifications</h2>
+                        <p class="text-sm text-neutral-500 dark:text-neutral-400">Receive push notifications on your mobile device</p>
                     </div>
-                    <code class="block p-3 rounded text-sm break-all"
-                        style="background-color: var(--color-bg-primary);">{{ api_token }}</code>
                 </div>
-                {% else %}
-                <button hx-post="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
-                    class="w-full py-3 rounded-lg font-medium text-white transition flex items-center justify-center gap-2"
-                    style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Home Assistant URL</label>
+                        <input type="url" name="homeassistant_url" value="{{ settings.homeassistant_url or '' }}"
+                            placeholder="https://your-ha-instance.com" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The URL of your Home Assistant instance</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Access Token</label>
+                        <input type="password" name="homeassistant_token" value="{{ settings.homeassistant_token or '' }}"
+                            placeholder="••••••••" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">Long-lived access token from Home Assistant Settings > Devices & Services > Mobile App</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Device Name</label>
+                        <input type="text" name="homeassistant_device" value="{{ settings.homeassistant_device or '' }}"
+                            placeholder="iphone" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The device name configured in the Home Assistant Companion app (e.g., 'iphone', 'pixel')</p>
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-neutral-400 dark:focus:ring-offset-neutral-900">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
-                    Generate API Token
+                    Save Settings
                 </button>
-                {% endif %}
-            </div>
-
-            <details class="mt-4">
-                <summary class="cursor-pointer font-medium flex items-center gap-2"
-                    style="color: var(--color-accent-primary);">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    How to set up Siri Shortcuts
-                </summary>
-
-                <div class="mt-4 p-4 rounded-lg space-y-4 text-sm" style="background-color: var(--color-bg-tertiary);">
-                    <p><strong>Step 1:</strong> Generate an API token above if you haven't already.</p>
-
-                    <p><strong>Step 2:</strong> Open the <strong>Shortcuts</strong> app on your iPhone/iPad.</p>
-
-                    <p><strong>Step 3:</strong> Create a new shortcut with these actions:</p>
-
-                    <ol class="list-decimal list-inside space-y-2 pl-2">
-                        <li><strong>Record Audio</strong> - Records your voice note</li>
-                        <li><strong>Get Contents of URL</strong> - With these settings:
-                            <ul class="list-disc list-inside pl-4 mt-1 space-y-1"
-                                style="color: var(--color-text-secondary);">
-                                <li>URL: <code class="px-1 rounded"
-                                        style="background-color: var(--color-bg-primary);">{{ server_url }}/api/upload</code>
-                                </li>
-                                <li>Method: <strong>POST</strong></li>
-                                <li>Headers:
-                                    <ul class="list-disc list-inside pl-4">
-                                        <li><code>Authorization</code>: <code>Bearer YOUR_API_TOKEN</code></li>
-                                    </ul>
-                                </li>
-                                <li>Request Body: <strong>Form</strong>
-                                    <ul class="list-disc list-inside pl-4">
-                                        <li>Key: <code>audio_file</code>, Type: <strong>File</strong>, Value:
-                                            <em>Recorded Audio</em>
-                                        </li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
-                    </ol>
-
-                    <p><strong>Step 4:</strong> Name your shortcut "Voice Note" or similar.</p>
-
-                    <p><strong>Step 5:</strong> Say "Hey Siri, Voice Note" to start recording!</p>
-
-                    <div class="p-3 rounded-lg mt-4"
-                        style="background-color: rgb(16 185 129 / 0.1); color: var(--color-success);">
-                        <strong>Tip:</strong> You can also add your shortcut to the Lock Screen, Home Screen, or Back
-                        Tap for quick access.
-                    </div>
-                </div>
-            </details>
+            </form>
         </div>
 
-        <!-- Home Assistant -->
-        <form hx-patch="/web/settings" hx-swap="none"
-            hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
-            class="space-y-6">
-            <div class="flex items-center gap-3 pb-4 border-t" style="border-color: var(--color-border);">
-                <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
-                </svg>
-                <div>
-                    <h2 class="text-lg font-semibold">Home Assistant Notifications</h2>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">Receive push notifications on your mobile device</p>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Home Assistant URL</label>
-                    <input type="url" name="homeassistant_url" value="{{ settings.homeassistant_url or '' }}"
-                        placeholder="https://your-ha-instance.com" class="w-full px-4 py-3 rounded-lg border"
-                        style="border-color: var(--color-border);" />
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The URL of your Home Assistant instance</p>
+        <!-- Tags Panel -->
+        <div x-show="activeTab === 'tags'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="p-6 mt-6 rounded-xl bg-neutral-50 dark:bg-neutral-900">
+            <form hx-patch="/web/settings" hx-swap="none"
+                hx-on::after-request="if(event.detail.successful) showToast('Tags saved!', 'success')"
+                class="space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <svg class="w-6 h-6 text-neutral-950 dark:text-neutral-50" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    <div>
+                        <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Custom Tags</h2>
+                        <p class="text-sm text-neutral-500 dark:text-neutral-400">Tags available for categorizing your notes</p>
+                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-2">Access Token</label>
-                    <input type="password" name="homeassistant_token" value="{{ settings.homeassistant_token or '' }}"
-                        placeholder="••••••••" class="w-full px-4 py-3 rounded-lg border"
-                        style="border-color: var(--color-border);" />
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Long-lived access token from Home Assistant Settings > Devices & Services > Mobile App</p>
+                    <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Tags (comma-separated)</label>
+                    <input type="text" name="custom_tags" value="{{ settings.custom_tags | join(', ') }}"
+                        placeholder="Idea, Todo, Work, Personal, Reference" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                    <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">These tags will be available when categorizing notes</p>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium mb-2">Device Name</label>
-                    <input type="text" name="homeassistant_device" value="{{ settings.homeassistant_device or '' }}"
-                        placeholder="iphone" class="w-full px-4 py-3 rounded-lg border"
-                        style="border-color: var(--color-border);" />
-                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">The device name configured in the Home Assistant Companion app (e.g., 'iphone', 'pixel')</p>
-                </div>
-            </div>
-
-            <button type="submit"
-                class="w-full py-3 rounded-lg font-semibold text-white transition flex items-center justify-center gap-2"
-                style="background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-hover));">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Settings
-            </button>
-        </form>
-    </div>
-
-    <!-- Tags Panel -->
-    <div id="panel-tags" class="settings-panel p-6 rounded-xl hidden" style="background-color: var(--color-bg-secondary);">
-        <form hx-patch="/web/settings" hx-swap="none"
-            hx-on::after-request="if(event.detail.successful) showToast('Tags saved!', 'success')"
-            class="space-y-6">
-            <div class="flex items-center gap-3 pb-4 border-b" style="border-color: var(--color-border);">
-                <svg class="w-6 h-6" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <div>
-                    <h2 class="text-lg font-semibold">Custom Tags</h2>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">Tags available for categorizing your notes</p>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium mb-2">Tags (comma-separated)</label>
-                <input type="text" name="custom_tags" value="{{ settings.custom_tags | join(', ') }}"
-                    placeholder="Idea, Todo, Work, Personal, Reference" class="w-full px-4 py-3 rounded-lg border"
-                    style="border-color: var(--color-border);" />
-                <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">These tags will be available when categorizing notes</p>
-            </div>
-
-            <button type="submit"
-                class="w-full py-3 rounded-lg font-semibold text-white transition flex items-center justify-center gap-2"
-                style="background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-hover));">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Tags
-            </button>
-        </form>
+                <button type="submit"
+                    class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-neutral-400 dark:focus:ring-offset-neutral-900">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Tags
+                </button>
+            </form>
+        </div>
     </div>
 
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    function switchTab(tabName) {
-        const tabs = document.querySelectorAll('.settings-tab');
-        const panels = document.querySelectorAll('.settings-panel');
-
-        tabs.forEach(tab => {
-            if (tab.id === `tab-${tabName}`) {
-                tab.style.borderColor = 'var(--color-accent-primary)';
-                tab.style.color = 'var(--color-accent-primary)';
-            } else {
-                tab.style.borderColor = 'transparent';
-                tab.style.color = 'var(--color-text-secondary)';
-            }
-        });
-
-        panels.forEach(panel => {
-            if (panel.id === `panel-${tabName}`) {
-                panel.classList.remove('hidden');
-            } else {
-                panel.classList.add('hidden');
-            }
-        });
-    }
-</script>
 {% endblock %}

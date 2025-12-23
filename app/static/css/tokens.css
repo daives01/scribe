@@ -1,39 +1,53 @@
-/* Scribe Design Tokens */
+/* Pines UI Design Tokens */
 
 :root {
-  /* Color Tokens - Light Mode */
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-bg-tertiary: #f3f4f6;
+  /* Light Mode - Pines UI Neutral Colors */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --neutral-950: #0a0a0a;
 
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
+  /* Accent Colors - Blue */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
 
-  --color-border: #e5e7eb;
-  --color-border-focus: #3b82f6;
-
-  --color-accent-primary: #3b82f6;
-  --color-accent-hover: #2563eb;
-
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* Accent Colors - Slate (Gray/Blue) */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
 
   /* Status Colors */
-  --color-status-pending: #f59e0b;
-  --color-status-transcribing: #8b5cf6;
-  --color-status-processing: #3b82f6;
-  --color-status-completed: #10b981;
-  --color-status-failed: #ef4444;
+  --green-500: #22c55e;
+  --yellow-500: #eab308;
+  --red-500: #ef4444;
+  --purple-500: #a855f7;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-
-  /* Spacing (complement Tailwind) */
-  --space-page: 2rem;
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -46,18 +60,39 @@
   --radius-full: 9999px;
 }
 
-[data-theme="dark"] {
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
+.dark {
+  --neutral-50: #0a0a0a;
+  --neutral-100: #171717;
+  --neutral-200: #262626;
+  --neutral-300: #404040;
+  --neutral-400: #525252;
+  --neutral-500: #737373;
+  --neutral-600: #a3a3a3;
+  --neutral-700: #d4d4d4;
+  --neutral-800: #e5e5e5;
+  --neutral-900: #fafafa;
+  --neutral-950: #ffffff;
 
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-tertiary: #94a3b8;
+  --blue-50: #172554;
+  --blue-100: #1e3a8a;
+  --blue-200: #1e40af;
+  --blue-300: #1d4ed8;
+  --blue-400: #2563eb;
+  --blue-500: #3b82f6;
+  --blue-600: #60a5fa;
+  --blue-700: #93c5fd;
+  --blue-800: #bfdbfe;
+  --blue-900: #dbeafe;
 
-  --color-border: #334155;
-  --color-border-focus: #60a5fa;
-
-  --color-accent-primary: #60a5fa;
-  --color-accent-hover: #3b82f6;
+  /* Accent Colors - Slate (Gray/Blue) */
+  --slate-50: #0f172a;
+  --slate-100: #1e293b;
+  --slate-200: #334155;
+  --slate-300: #475569;
+  --slate-400: #64748b;
+  --slate-500: #94a3b8;
+  --slate-600: #cbd5e1;
+  --slate-700: #e2e8f0;
+  --slate-800: #f1f5f9;
+  --slate-900: #f8fafc;
 }

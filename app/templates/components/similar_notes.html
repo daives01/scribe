@@ -1,31 +1,31 @@
 {% if error %}
-<div class="col-span-full text-center py-4 px-3 rounded-lg" style="background-color: rgb(239 68 68 / 0.1);">
-    <p style="color: var(--color-error);" class="text-xs font-medium">Error: {{ error }}</p>
+<div class="col-span-full text-center py-4 px-3 rounded-lg bg-red-100 dark:bg-red-900/20">
+    <p class="text-xs font-medium text-red-600 dark:text-red-400">Error: {{ error }}</p>
 </div>
 {% elif processing %}
 <div class="col-span-full text-center py-8">
-    <div class="flex flex-col items-center gap-2">
-        <svg class="w-6 h-6 animate-spin" style="color: var(--color-accent-primary);" fill="none" viewBox="0 0 24 24">
+        <div class="flex flex-col items-center gap-2">
+        <svg class="w-6 h-6 animate-spin text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
             </path>
         </svg>
-        <p class="text-xs" style="color: var(--color-text-secondary);">Analyzing connections...</p>
+        <p class="text-xs text-neutral-500 dark:text-neutral-400">Analyzing connections...</p>
     </div>
 </div>
 {% elif notes %}
 {% for note in notes %}
-<div class="card p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+<div class="bg-white dark:bg-neutral-950 border border-neutral-200/60 dark:border-neutral-800 rounded-lg shadow-sm p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
     hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main">
-    <h4 class="font-medium mb-2 line-clamp-2">
+    <h4 class="font-medium mb-2 line-clamp-2 text-neutral-900 dark:text-neutral-100">
         {{ note.summary or note.raw_transcript[:50] }}{% if note.raw_transcript and note.raw_transcript|length > 50 and
         not note.summary %}...{% endif %}
     </h4>
 
-    <div class="flex items-center justify-between text-xs" style="color: var(--color-text-tertiary);">
+    <div class="flex items-center justify-between text-xs text-neutral-400 dark:text-neutral-600">
         {% if note.tag %}
-        <span class="tag-badge text-xs py-0.5 px-2">{{ note.tag }}</span>
+        <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full tag-badge" data-tag="{{ note.tag }}">{{ note.tag }}</span>
         {% else %}
         <span></span>
         {% endif %}
@@ -35,12 +35,12 @@
 {% endfor %}
 {% else %}
 <div class="col-span-full text-center py-8">
-    <svg class="w-10 h-10 mx-auto mb-2" style="color: var(--color-text-tertiary);" fill="none" viewBox="0 0 24 24"
+    <svg class="w-10 h-10 mx-auto mb-2 text-neutral-400 dark:text-neutral-600" fill="none" viewBox="0 0 24 24"
         stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>
-    <p class="text-sm" style="color: var(--color-text-secondary);">No similar notes found.</p>
-    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Add more notes to see connections.</p>
+    <p class="text-sm text-neutral-500 dark:text-neutral-400">No similar notes found.</p>
+    <p class="text-xs mt-1 text-neutral-400 dark:text-neutral-600">Add more notes to see connections.</p>
 </div>
 {% endif %}

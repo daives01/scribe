@@ -1,5 +1,53 @@
 // Scribe Utility Functions
 
+// Generate consistent color for tags based on their value
+function getTagColor(tag) {
+    const colors = [
+        { bg: 'bg-rose-100', text: 'text-rose-700', darkBg: 'dark:bg-rose-900/30', darkText: 'dark:text-rose-400' },
+        { bg: 'bg-orange-100', text: 'text-orange-700', darkBg: 'dark:bg-orange-900/30', darkText: 'dark:text-orange-400' },
+        { bg: 'bg-amber-100', text: 'text-amber-700', darkBg: 'dark:bg-amber-900/30', darkText: 'dark:text-amber-400' },
+        { bg: 'bg-yellow-100', text: 'text-yellow-700', darkBg: 'dark:bg-yellow-900/30', darkText: 'dark:text-yellow-400' },
+        { bg: 'bg-lime-100', text: 'text-lime-700', darkBg: 'dark:bg-lime-900/30', darkText: 'dark:text-lime-400' },
+        { bg: 'bg-green-100', text: 'text-green-700', darkBg: 'dark:bg-green-900/30', darkText: 'dark:text-green-400' },
+        { bg: 'bg-emerald-100', text: 'text-emerald-700', darkBg: 'dark:bg-emerald-900/30', darkText: 'dark:text-emerald-400' },
+        { bg: 'bg-teal-100', text: 'text-teal-700', darkBg: 'dark:bg-teal-900/30', darkText: 'dark:text-teal-400' },
+        { bg: 'bg-cyan-100', text: 'text-cyan-700', darkBg: 'dark:bg-cyan-900/30', darkText: 'dark:text-cyan-400' },
+        { bg: 'bg-sky-100', text: 'text-sky-700', darkBg: 'dark:bg-sky-900/30', darkText: 'dark:text-sky-400' },
+        { bg: 'bg-blue-100', text: 'text-blue-700', darkBg: 'dark:bg-blue-900/30', darkText: 'dark:text-blue-400' },
+        { bg: 'bg-indigo-100', text: 'text-indigo-700', darkBg: 'dark:bg-indigo-900/30', darkText: 'dark:text-indigo-400' },
+        { bg: 'bg-violet-100', text: 'text-violet-700', darkBg: 'dark:bg-violet-900/30', darkText: 'dark:text-violet-400' },
+        { bg: 'bg-purple-100', text: 'text-purple-700', darkBg: 'dark:bg-purple-900/30', darkText: 'dark:text-purple-400' },
+        { bg: 'bg-fuchsia-100', text: 'text-fuchsia-700', darkBg: 'dark:bg-fuchsia-900/30', darkText: 'dark:text-fuchsia-400' },
+        { bg: 'bg-pink-100', text: 'text-pink-700', darkBg: 'dark:bg-pink-900/30', darkText: 'dark:text-pink-400' },
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+        hash = ((hash << 5) - hash) + tag.charCodeAt(i);
+        hash = hash & hash;
+    }
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+}
+
+// Apply colors to tag badges
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.tag-badge[data-tag]').forEach(badge => {
+        const tag = badge.dataset.tag;
+        const colors = getTagColor(tag);
+        badge.classList.add(colors.bg, colors.text, colors.darkBg, colors.darkText);
+    });
+});
+
+document.body.addEventListener('htmx:afterSettle', function() {
+    document.querySelectorAll('.tag-badge[data-tag]').forEach(badge => {
+        const tag = badge.dataset.tag;
+        const colors = getTagColor(tag);
+        badge.classList.add(colors.bg, colors.text, colors.darkBg, colors.darkText);
+    });
+});
+
 // Handle Enter key for note creation
 document.addEventListener('DOMContentLoaded', function() {
     const noteInput = document.getElementById('note-input');

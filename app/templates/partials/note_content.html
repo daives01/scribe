@@ -3,12 +3,12 @@
 
     <!-- Status Badge (if not completed) -->
     {% if note.processing_status != "completed" %}
-    <div class="status-badge status-{{ note.processing_status }}" {% if note.processing_status in
-        ["pending", "transcribing" , "processing" ] %} hx-get="/web/notes/{{ note.id }}/status"
+    <div class="flex items-center gap-1 rounded-full text-xs font-semibold px-2.5 py-0.5 {% if note.processing_status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400{% elif note.processing_status == 'transcribing' %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400{% elif note.processing_status == 'processing' %}bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400{% elif note.processing_status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}"
+        {% if note.processing_status in ["pending", "transcribing" , "processing" ] %} hx-get="/web/notes/{{ note.id }}/status"
         hx-trigger="sse:note-status-{{ note.id }} from:body" hx-swap="outerHTML" {% endif %}>
         {% if note.processing_status == "pending" %}
         <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="8" />
         </svg>
         {% elif note.processing_status in ["transcribing", "processing"] %}
         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -23,19 +23,17 @@
         {% endif %}
         {{ note.processing_status }}
         {% if note.error_message %}
-        <span class="text-xs ml-2">- {{ note.error_message[:50] }}{% if note.error_message|length > 50 %}...{% endif
-            %}</span>
+        <span class="text-xs ml-2 opacity-75">- {{ note.error_message[:50] }}{% if note.error_message|length > 50 %}...{% endif %}</span>
         {% endif %}
     </div>
     {% endif %}
 
     <!-- Summary (Inline Editable) -->
     <div hx-get="/web/notes/{{ note.id }}/edit/summary" hx-trigger="click" hx-target="this" hx-swap="outerHTML"
-        class="cursor-text p-4 rounded-xl hover:shadow-sm transition group"
-        style="background-color: var(--color-bg-secondary);">
+        class="cursor-text p-4 rounded-xl hover:shadow-sm transition group bg-neutral-100 dark:bg-neutral-900">
         <div class="flex items-start justify-between">
-            <h1 class="text-3xl font-bold">{{ note.summary or "Untitled Note" }}</h1>
-            <svg class="w-5 h-5 opacity-0 group-hover:opacity-50 transition" style="color: var(--color-text-tertiary);"
+            <h1 class="text-3xl font-bold text-neutral-950 dark:text-neutral-50">{{ note.summary or "Untitled Note" }}</h1>
+            <svg class="w-5 h-5 opacity-0 group-hover:opacity-50 transition text-neutral-400 dark:text-neutral-600"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -47,8 +45,7 @@
     <div hx-get="/web/notes/{{ note.id }}/edit/tag" hx-trigger="click" hx-target="this" hx-swap="outerHTML"
         class="inline-flex cursor-pointer group">
         {% if note.tag %}
-        <span class="px-4 py-2 rounded-full text-sm font-medium transition group-hover:shadow-sm"
-            style="background-color: var(--color-accent-primary); color: white;">
+        <span class="px-4 py-2 rounded-full text-sm font-medium transition group-hover:shadow-sm tag-badge" data-tag="{{ note.tag }}">
             {{ note.tag }}
             <svg class="w-4 h-4 inline-block ml-1 opacity-0 group-hover:opacity-100 transition" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor">
@@ -57,8 +54,7 @@
         </span>
         {% else %}
         <span
-            class="px-4 py-2 rounded-full text-sm font-medium border-2 border-dashed transition group-hover:border-solid"
-            style="border-color: var(--color-border); color: var(--color-text-tertiary);">
+            class="px-4 py-2 rounded-full text-sm font-medium border-2 border-dashed transition group-hover:border-solid border-neutral-300 dark:border-neutral-700 text-neutral-400 dark:text-neutral-600">
             + Add tag
         </span>
         {% endif %}
@@ -66,24 +62,23 @@
 
     <!-- Transcript (Inline Editable) -->
     <div hx-get="/web/notes/{{ note.id }}/edit/transcript" hx-trigger="click" hx-target="this" hx-swap="outerHTML"
-        class="cursor-text p-6 rounded-xl hover:shadow-sm transition group min-h-[200px]"
-        style="background-color: var(--color-bg-secondary);">
+        class="cursor-text p-6 rounded-xl hover:shadow-sm transition group min-h-[200px] bg-neutral-100 dark:bg-neutral-900">
         <div class="flex items-start justify-between mb-4">
-            <h3 class="text-sm font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary);">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Transcript
             </h3>
-            <svg class="w-5 h-5 opacity-0 group-hover:opacity-50 transition" style="color: var(--color-text-tertiary);"
+            <svg class="w-5 h-5 opacity-0 group-hover:opacity-50 transition text-neutral-400 dark:text-neutral-600"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
         </div>
-        <p class="whitespace-pre-wrap leading-relaxed text-lg">{{ note.raw_transcript or "No transcript available."
+        <p class="whitespace-pre-wrap leading-relaxed text-lg text-neutral-700 dark:text-neutral-300">{{ note.raw_transcript or "No transcript available."
             }}</p>
     </div>
 
     <!-- Metadata -->
-    <div class="flex flex-wrap gap-4 text-sm" style="color: var(--color-text-secondary);">
+    <div class="flex flex-wrap gap-4 text-sm text-neutral-500 dark:text-neutral-400">
         <span class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
