@@ -2,7 +2,7 @@
 
 import uuid
 from pathlib import Path
-from typing import Annotated, Union, cast
+from typing import Annotated, cast
 
 from fastapi import (
     APIRouter,
@@ -241,7 +241,7 @@ async def delete_note(
     current_user: CurrentUserDep,
     background_tasks: BackgroundTasks,
     request: Request,
-) -> Union[dict, Response]:
+) -> dict | Response:
     """
     Delete a note.
     """

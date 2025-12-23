@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Annotated, Optional, cast
+from typing import Annotated, cast
 
 from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -51,8 +51,8 @@ BackgroundTasksDep = Annotated[BackgroundTasks, Depends()]
 async def get_current_user_from_cookie(
     request: Request,
     session: Session,
-    access_token: Optional[str],
-) -> Optional[User]:
+    access_token: str | None,
+) -> User | None:
     """Get current user from cookie token."""
     if not access_token:
         return None
@@ -84,7 +84,7 @@ def get_user_settings_for_user(session: Session, user: User) -> UserSettings:
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, error: Optional[str] = None):
+async def login_page(request: Request, error: str | None = None):
     """Render login page."""
     return templates.TemplateResponse(
         "login.html",
@@ -127,7 +127,7 @@ async def login_submit(
 
 
 @router.get("/register", response_class=HTMLResponse)
-async def register_page(request: Request, error: Optional[str] = None):
+async def register_page(request: Request, error: str | None = None):
     """Render register page."""
     return templates.TemplateResponse(
         "register.html",
@@ -190,7 +190,7 @@ async def logout():
 async def home(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Render home page."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -206,7 +206,7 @@ async def home(
 async def settings_page(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Render settings page."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -251,7 +251,7 @@ async def get_similar_notes_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Generate a new API token (HTMX)."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -293,7 +293,7 @@ async def edit_note_field(
     field: str,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Render inline edit form for a note field."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -324,7 +324,7 @@ async def update_note_web(
     request: Request,
     session: SessionDep,
     background_tasks: BackgroundTasks,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
     raw_transcript: Annotated[str | None, Form()] = None,
     summary: Annotated[str | None, Form()] = None,
     tag: Annotated[str | None, Form()] = None,
@@ -375,8 +375,8 @@ async def update_note_web(
 async def search_notes(
     request: Request,
     session: SessionDep,
-    q: Annotated[Optional[str], Form()] = "",
-    access_token: Optional[str] = Cookie(default=None),
+    q: Annotated[str | None, Form()] = "",
+    access_token: str | None = Cookie(default=None),
 ):
     """Semantic search notes and return HTML results."""
     logger.info(f"Received search request: query='{q}'")
@@ -412,8 +412,8 @@ async def search_notes(
 async def get_models(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-    ollama_url: Optional[str] = None,
+    access_token: str | None = Cookie(default=None),
+    ollama_url: str | None = None,
 ):
     """Get available Ollama models as select options."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -452,8 +452,8 @@ async def get_models(
 async def get_connection_status(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
-    ollama_url: Optional[str] = None,
+    access_token: str | None = Cookie(default=None),
+    ollama_url: str | None = None,
 ):
     """Get Ollama connection status."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -508,7 +508,7 @@ async def get_connection_status(
 async def update_settings_web(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
     ollama_url: Annotated[str | None, Form()] = None,
     ollama_model: Annotated[str | None, Form()] = None,
     ollama_embedding_model: Annotated[str | None, Form()] = None,
@@ -574,7 +574,7 @@ async def update_settings_web(
 async def generate_api_token_web(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ) -> HTMLResponse:
     """
     Generate a new API token (HTMX).
@@ -618,7 +618,7 @@ async def generate_api_token_web(
 async def revoke_api_token_web(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ) -> HTMLResponse:
     """
     Revoke the current API token (HTMX).
@@ -654,7 +654,7 @@ async def archive_note_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Archive a note (HTMX)."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -675,7 +675,7 @@ async def unarchive_note_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Unarchive a note (HTMX)."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -697,7 +697,7 @@ async def create_text_note_web(
     session: SessionDep,
     background_tasks: BackgroundTasks,
     text: Annotated[str, Form()] = "",
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """Create a new text note (HTMX)."""
     user = await get_current_user_from_cookie(request, session, access_token)
@@ -737,7 +737,7 @@ async def create_text_note_web(
 async def get_recent_notes_web(
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ) -> HTMLResponse:
     """
     Get recent notes for the home page (HTMX).
@@ -784,7 +784,7 @@ async def get_note_detail_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """
     Get note detail page (HTMX).
@@ -820,7 +820,7 @@ async def get_note_card_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ) -> HTMLResponse:
     """
     Get note card HTML for SSE updates (HTMX).
@@ -857,7 +857,7 @@ async def get_note_status_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ) -> HTMLResponse:
     """
     Get note status badge HTML for SSE updates (HTMX).
@@ -893,7 +893,7 @@ async def get_note_content_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ) -> HTMLResponse:
     """
     Get note content HTML for SSE updates (HTMX).

@@ -1,9 +1,9 @@
+import datetime
 import json
 import os
-import datetime
-from typing import Optional
-from pydantic import BaseModel, Field
+
 from ollama import Client
+from pydantic import BaseModel, Field
 
 
 # 1. Define the Schema using Pydantic
@@ -11,7 +11,7 @@ class EvaluationOutput(BaseModel):
     summary: str = Field(description="A summary of the transcript in 5 words or less")
     tag: str = Field(description="Must be one of: todo, note, misc")
     timestamp_rationale: str = Field(description="Explanation of timestamp calculation")
-    timestamp: Optional[str] = Field(
+    timestamp: str | None = Field(
         default=None,
         description="The task time in YYYY-MM-DDTHH:MM:SS format if applicable",
     )
@@ -25,7 +25,7 @@ def run_eval(config_path: str, model_name: str):
     output_file = f"{safe_model}-{base_name}-results.jsonl"
 
     # Load config
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = json.load(f)
 
     template = config["prompt_template"]

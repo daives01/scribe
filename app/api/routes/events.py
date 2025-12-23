@@ -1,9 +1,11 @@
-from typing import Optional, cast
+from typing import cast
+
 from fastapi import APIRouter, Cookie, Request
 from fastapi.responses import StreamingResponse
-from app.utils.events import event_manager
-from app.api.routes.web import get_current_user_from_cookie
 from sqlmodel import Session
+
+from app.api.routes.web import get_current_user_from_cookie
+from app.utils.events import event_manager
 
 router = APIRouter(tags=["events"])
 
@@ -11,7 +13,7 @@ router = APIRouter(tags=["events"])
 @router.get("/api/events")
 async def events_endpoint(
     request: Request,
-    access_token: Optional[str] = Cookie(default=None),
+    access_token: str | None = Cookie(default=None),
 ):
     """SSE endpoint for real-time updates."""
     # We need a session to get the user

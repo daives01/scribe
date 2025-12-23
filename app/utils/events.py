@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Dict, Set
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +9,7 @@ class EventManager:
 
     def __init__(self):
         # Maps user_id to a set of queues (one per connection)
-        self.user_queues: Dict[int, Set[asyncio.Queue]] = {}
+        self.user_queues: dict[int, set[asyncio.Queue]] = {}
 
     async def subscribe(self, user_id: int):
         """Subscribe to events for a specific user."""

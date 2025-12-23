@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Generator
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -22,14 +22,14 @@ def get_db() -> Generator[Session, None, None]:
 
 
 SessionDep = Annotated[Session, Depends(get_db)]
-TokenDep = Annotated[Optional[str], Depends(oauth2_scheme)]
+TokenDep = Annotated[str | None, Depends(oauth2_scheme)]
 
 
 def get_current_user(
     session: SessionDep,
     token: TokenDep,
     request: Request,
-    authorization: Annotated[Optional[str], Header()] = None,
+    authorization: Annotated[str | None, Header()] = None,
 ) -> User:
     """
     Get the current authenticated user from JWT token, cookie, or API token.

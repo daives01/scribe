@@ -6,7 +6,6 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-
 from sqlmodel import Session, select
 
 from app.database import engine

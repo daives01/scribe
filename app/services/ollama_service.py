@@ -1,10 +1,9 @@
 """Ollama service for LLM and embedding operations."""
 
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 from typing import TypedDict
-
 
 import httpx
 import numpy as np

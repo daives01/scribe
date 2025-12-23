@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -30,11 +30,11 @@ class HomeAssistantService:
         self,
         device: str,
         message: str,
-        title: Optional[str] = None,
-        url: Optional[str] = None,
+        title: str | None = None,
+        url: str | None = None,
     ) -> bool:
         api_url = f"{self.base_url}/api/services/notify/mobile_app_{device}"
-        payload: Dict[str, Any] = {"message": message}
+        payload: dict[str, Any] = {"message": message}
         if title:
             payload["title"] = title
 

@@ -4,13 +4,12 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context  # type: ignore
-
 # Import SQLModel and all models
 from sqlmodel import SQLModel
 
-from app.models import Note, User, UserSettings  # noqa: F401
+from alembic import context  # type: ignore
 from app.config import settings as app_settings
+from app.models import Note, User, UserSettings  # noqa: F401
 
 # this is the Alembic Config object
 config = context.config
