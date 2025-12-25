@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import UTC, datetime
 from typing import Annotated, cast
 
 from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Request
@@ -20,6 +21,7 @@ from app.services.auth_service import (
 from app.services.note_service import NoteService
 from app.services.ollama_service import get_ollama_service
 from app.tasks.processing_tasks import process_new_note
+from app.utils import get_custom_tags
 from app.utils.events import event_manager
 from app.utils.exceptions import AuthenticationError, NotFoundError
 
@@ -214,10 +216,7 @@ async def settings_page(
         return RedirectResponse(url="/login", status_code=303)
 
     user_settings = get_user_settings_for_user(session, user)
-    try:
-        custom_tags = json.loads(user_settings.custom_tags)
-    except (json.JSONDecodeError, TypeError):
-        custom_tags = ["Idea", "Todo", "Work", "Personal", "Reference"]
+    custom_tags = get_custom_tags(user_settings.custom_tags)
 
     # Get server URL from request
     server_url = str(request.base_url).rstrip("/")
@@ -305,10 +304,7 @@ async def edit_note_field(
 
     try:
         note = note_service.get_note(note_id, cast(int, user.id))
-        try:
-            available_tags = json.loads(user_settings.custom_tags)
-        except (json.JSONDecodeError, TypeError):
-            available_tags = ["Idea", "Todo", "Work", "Personal", "Reference"]
+        available_tags = get_custom_tags(user_settings.custom_tags)
 
         return templates.TemplateResponse(
             f"forms/edit_{field}.html",
@@ -366,6 +362,273 @@ async def update_note_web(
     except Exception as e:
         logger.exception(f"Error updating note: {e}")
         return HTMLResponse(content="Error updating note", status_code=500)
+
+
+def _parse_table_filters(
+    archive_filter: str,
+    date_from: str | None,
+    date_to: str | None,
+) -> tuple[tuple[bool, bool], datetime | None, datetime | None]:
+    if archive_filter == "active":
+        include_archived = False
+        archived_only = False
+    elif archive_filter == "all":
+        include_archived = True
+        archived_only = False
+    elif archive_filter == "archived":
+        include_archived = False
+        archived_only = True
+    else:
+        include_archived = False
+        archived_only = False
+
+    parsed_date_from = None
+    parsed_date_to = None
+
+    if date_from:
+        try:
+            parsed_date_from = datetime.strptime(date_from, "%Y-%m-%d").replace(
+                tzinfo=UTC
+            )
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            parsed_date_to = datetime.strptime(date_to, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=UTC
+            )
+        except ValueError:
+            pass
+
+    return (include_archived, archived_only), parsed_date_from, parsed_date_to
+
+
+# ============= Notes Table Routes =============
+
+
+@router.get("/web/notes/table", response_class=HTMLResponse)
+async def get_notes_table_page(
+    request: Request,
+    session: SessionDep,
+    access_token: str | None = Cookie(default=None),
+):
+    """
+    Render all notes table page.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    user_settings = get_user_settings_for_user(session, user)
+    custom_tags = get_custom_tags(user_settings.custom_tags)
+
+    return templates.TemplateResponse(
+        "notes_table.html",
+        {
+            "request": request,
+            "current_user": user,
+            "available_tags": custom_tags,
+        },
+    )
+
+
+@router.get("/web/notes/table/data", response_class=HTMLResponse)
+async def get_notes_table_data(
+    request: Request,
+    session: SessionDep,
+    access_token: str | None = Cookie(default=None),
+    search: str | None = None,
+    tag: str | None = None,
+    status: str | None = None,
+    archive_filter: str = "active",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    page: int = 1,
+    per_page: int = 20,
+):
+    """
+    Get notes table body (HTMX partial).
+
+    Supports filtering, sorting, and pagination.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    (include_archived, archived_only), parsed_date_from, parsed_date_to = (
+        _parse_table_filters(archive_filter, date_from, date_to)
+    )
+
+    try:
+        notes, total = note_service.list_notes_advanced(
+            user_id=user.id,
+            search=search,
+            tag=tag if tag and tag != "all" else None,
+            status=status if status and status != "all" else None,
+            include_archived=include_archived,
+            archived_only=archived_only,
+            date_from=parsed_date_from,
+            date_to=parsed_date_to,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            per_page=per_page,
+        )
+
+        start = (page - 1) * per_page + 1
+        end = min(start + per_page - 1, total)
+
+        return templates.TemplateResponse(
+            "components/notes_table_body.html",
+            {
+                "request": request,
+                "notes": notes,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "start": start if notes else 0,
+                "end": end if notes else 0,
+                "search": search or "",
+                "tag": tag or "all",
+                "status": status or "all",
+                "archive_filter": archive_filter,
+                "date_from": date_from or "",
+                "date_to": date_to or "",
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Error loading notes table data: {e}")
+        return HTMLResponse(content="", status_code=500)
+
+
+@router.get("/web/notes/table/components/pagination", response_class=HTMLResponse)
+async def get_notes_table_pagination(
+    request: Request,
+    session: SessionDep,
+    access_token: str | None = Cookie(default=None),
+    total: int = 0,
+    page: int = 1,
+    per_page: int = 20,
+    search: str = "",
+    tag: str = "all",
+    status: str = "all",
+    archive_filter: str = "active",
+    date_from: str = "",
+    date_to: str = "",
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+):
+    """Render pagination component for notes table."""
+    user = await get_current_user_from_cookie(
+        request, session=session, access_token=access_token
+    )
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    (include_archived, archived_only), parsed_date_from, parsed_date_to = (
+        _parse_table_filters(archive_filter, date_from, date_to)
+    )
+
+    try:
+        _, computed_total = note_service.list_notes_advanced(
+            user_id=user.id,
+            search=search if search else None,
+            tag=tag if tag and tag != "all" else None,
+            status=status if status and status != "all" else None,
+            include_archived=include_archived,
+            archived_only=archived_only,
+            date_from=parsed_date_from,
+            date_to=parsed_date_to,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            per_page=per_page,
+        )
+
+        start = (page - 1) * per_page + 1
+        end = min(start + per_page - 1, computed_total)
+
+        return templates.TemplateResponse(
+            "components/pagination.html",
+            {
+                "request": request,
+                "total": computed_total,
+                "page": page,
+                "per_page": per_page,
+                "start": start if computed_total > 0 else 0,
+                "end": end if computed_total > 0 else 0,
+                "search": search,
+                "tag": tag,
+                "status": status,
+                "archive_filter": archive_filter,
+                "date_from": date_from,
+                "date_to": date_to,
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Error loading pagination: {e}")
+        return HTMLResponse(content="", status_code=500)
+
+
+@router.post("/web/notes/table/bulk", response_class=HTMLResponse)
+async def bulk_notes_action(
+    request: Request,
+    session: SessionDep,
+    background_tasks: BackgroundTasks,
+    access_token: str | None = Cookie(default=None),
+    note_ids: Annotated[str | None, Form()] = None,
+    action: Annotated[str | None, Form()] = None,
+):
+    """
+    Handle bulk actions on notes (archive, unarchive, delete).
+
+    Returns updated table body.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    if not note_ids or not action:
+        return HTMLResponse(content="", status_code=400)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    parsed_ids = [
+        int(id_str.strip()) for id_str in note_ids.split(",") if id_str.strip()
+    ]
+
+    try:
+        if action == "archive":
+            note_service.bulk_archive_notes(parsed_ids, user.id)
+            for note_id in parsed_ids:
+                await event_manager.broadcast(user.id, "note-archived", str(note_id))
+        elif action == "unarchive":
+            note_service.bulk_unarchive_notes(parsed_ids, user.id)
+            for note_id in parsed_ids:
+                await event_manager.broadcast(user.id, "note-unarchived", str(note_id))
+        elif action == "delete":
+            deleted_ids = note_service.bulk_delete_notes(parsed_ids, user.id)
+            for note_id in deleted_ids:
+                await event_manager.broadcast(user.id, "note-deleted", str(note_id))
+
+        return HTMLResponse(content="", status_code=200)
+    except Exception as e:
+        logger.exception(f"Error in bulk action: {e}")
+        return HTMLResponse(content="Error performing bulk action", status_code=500)
 
 
 # ============= Search Routes =============

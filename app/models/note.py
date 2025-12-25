@@ -1,16 +1,12 @@
 """Note model."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, Index, LargeBinary
 from sqlmodel import Field, Relationship, SQLModel
 
-
-def _utc_now() -> datetime:
-    """Return current UTC time."""
-    return datetime.now(UTC)
-
+from app.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -48,8 +44,8 @@ class Note(SQLModel, table=True):  # type: ignore
     archived: bool = Field(default=False, index=True)
 
     # Timestamps
-    created_at: datetime = Field(default_factory=_utc_now, index=True)
-    updated_at: datetime = Field(default_factory=_utc_now)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now)
 
     # Relationships
     user: "User" = Relationship(back_populates="notes")

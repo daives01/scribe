@@ -9,7 +9,7 @@ A self-hosted, multi-tenant voice note application that captures voice recording
 - **Siri Integration**: Generate long-lived tokens for Siri shortcut integration
 - **AI Processing**: Auto-summarization, smart tagging, and vector embedding generation
 - **Semantic Search**: Vector-based note discovery using sqlite-vec
-- **RAG System**: Question-answering over personal notes using local LLM
+- **Vector Search**: Semantic similarity search over notes using sqlite-vec
 - **CRUD Operations**: Full note management with automatic re-embedding on edits
 - **Similar Notes**: KNN-based "related notes" discovery
 - **Extensible LLM Config**: Per-user Ollama settings (URL, model selection)
@@ -76,28 +76,30 @@ This script will:
 ## API Endpoints
 
 ### Authentication
-- `POST /auth/register` - Create new user
-- `POST /auth/login` - Get JWT token
-- `GET /auth/me` - Get current user info
-- `POST /auth/api-token` - Generate long-lived API token
-- `DELETE /auth/api-token` - Revoke current API token
+- `POST /api/auth/register` - Create new user
+- `POST /api/auth/login` - Get JWT token
+- `GET /api/auth/me` - Get current user info
+- `POST /api/auth/api-token` - Generate long-lived API token
+- `DELETE /api/auth/api-token` - Revoke current API token
 
 ### Notes
-- `POST /upload` - Upload voice note (multipart/form-data)
-- `GET /notes` - List all notes
-- `GET /notes/{id}` - Get single note
-- `PATCH /notes/{id}` - Update note
-- `DELETE /notes/{id}` - Delete note
-- `GET /notes/{id}/similar` - Get similar notes
+- `POST /api/upload` - Upload voice note (multipart/form-data)
+- `GET /api/notes` - List all notes
+- `GET /api/notes/{id}` - Get single note
+- `PATCH /api/notes/{id}` - Update note
+- `DELETE /api/notes/{id}` - Delete note
+- `GET /api/notes/{id}/similar` - Get similar notes
 
-### Search & RAG
-- `POST /search` - Semantic search
-- `POST /ask` - RAG-based Q&A
+### Search
+- `POST /api/search` - Semantic search over notes
 
 ### Settings
-- `GET /settings` - Get user settings
-- `PATCH /settings` - Update settings
-- `GET /settings/models` - List available Ollama models
+- `GET /api/settings` - Get user settings
+- `PATCH /api/settings` - Update settings
+- `GET /api/settings/models` - List available Ollama models
+
+### Events
+- `GET /api/events` - Server-Sent Events endpoint for real-time updates
 
 ### Health
 - `GET /health` - System health check

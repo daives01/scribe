@@ -15,6 +15,68 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            neutral: {
+              50: '#fafafa',
+              100: '#f5f5f5',
+              200: '#e5e5e5',
+              300: '#d4d4d4',
+              400: '#a3a3a3',
+              500: '#737373',
+              600: '#525252',
+              700: '#404040',
+              800: '#262626',
+              900: '#171717',
+              950: '#0a0a0a',
+            },
+            slate: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            },
+            blue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            },
+          },
+          animation: {
+            'shimmer': 'shimmer 1.5s infinite',
+            'slide-in': 'slideIn 0.3s ease',
+          },
+          keyframes: {
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            },
+            slideIn: {
+              'from': { transform: 'translateX(100%)', opacity: '0' },
+              'to': { transform: 'translateX(0)', opacity: '1' },
+            },
+          },
+          lineClamp: {
+            1: '1',
+            2: '2',
+            3: '3',
+          },
+        },
+      },
     }
   </script>
 
@@ -29,7 +91,14 @@
 
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <style>[x-cloak] { display: none !important; }</style>
+  <style>
+    [x-cloak] { display: none !important; }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline-flex; }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
 
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
@@ -40,9 +109,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Custom Tokens & Styles -->
-  <link rel="stylesheet" href="/static/css/tokens.css">
-  <link rel="stylesheet" href="/static/css/styles.css">
+
 
   <!-- Theme Script (runs immediately to prevent flash) -->
   <script src="/static/js/theme.js"></script>
@@ -50,7 +117,7 @@
   {% block head %}{% endblock %}
 </head>
 
-<body class="h-full bg-white dark:bg-neutral-950 transition-colors duration-200"
+<body class="h-full bg-neutral-50 dark:bg-neutral-900 transition-colors duration-200"
       hx-ext="sse" sse-connect="/api/events">
 
   <!-- Top Navigation -->
@@ -80,6 +147,14 @@
                 d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
           </button>
+
+          <!-- All Notes -->
+          <a href="/web/notes/table" class="p-2 rounded-lg transition text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" title="All Notes">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+          </a>
 
           <!-- Settings -->
           <a href="/settings" hx-get="/settings" hx-target="main" hx-push-url="true" class="p-2 rounded-lg transition text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" title="Settings">
@@ -119,13 +194,15 @@
   <!-- Utility Scripts -->
   <script src="/static/js/utils.js"></script>
   <script>
-    // SSE Debugging
-    document.body.addEventListener('htmx:sseMessage', function (event) {
-      console.log('[SSE Event]', event.detail.type, event.detail.data);
-    });
-    document.body.addEventListener('htmx:sseError', function (event) {
-      console.error('[SSE Error]', event);
-    });
+    // SSE Debugging (only in development)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      document.body.addEventListener('htmx:sseMessage', function (event) {
+        console.log('[SSE]', event.detail.type);
+      });
+      document.body.addEventListener('htmx:sseError', function (event) {
+        console.error('[SSE Error]', event);
+      });
+    }
   </script>
 
   {% block scripts %}{% endblock %}

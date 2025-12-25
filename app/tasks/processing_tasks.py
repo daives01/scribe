@@ -1,7 +1,6 @@
 """Background processing tasks for notes."""
 
 import asyncio
-import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,6 +14,7 @@ from app.scheduler import get_scheduler
 from app.services.ollama_service import get_ollama_service
 from app.services.transcription_service import transcription_service
 from app.tasks.notification_tasks import send_note_notification
+from app.utils import get_custom_tags
 from app.utils.events import event_manager
 
 logger = logging.getLogger(__name__)
@@ -25,9 +25,43 @@ async def _get_user_settings(session: Session, user_id: int) -> UserSettings:
     statement = select(UserSettings).where(UserSettings.user_id == user_id)
     settings = session.exec(statement).first()
     if not settings:
-        # Return default settings
         return UserSettings(user_id=user_id)
     return settings
+
+
+async def _process_note_ai(note: Note, session: Session):
+    """
+    Process note with AI (summary, tag, embedding).
+
+    Args:
+        note: Note to process
+        session: Database session
+
+    Returns:
+        Dictionary with summary, tag, notification_timestamp, embedding
+    """
+    user_settings = await _get_user_settings(session, note.user_id)
+    ollama = get_ollama_service(
+        base_url=user_settings.ollama_url,
+        model=user_settings.ollama_model,
+        embedding_model=user_settings.ollama_embedding_model,
+        api_key=user_settings.ollama_api_key,
+    )
+
+    available_tags = get_custom_tags(user_settings.custom_tags)
+
+    summary_result = await ollama.generate_summary_and_tag(
+        note.raw_transcript, available_tags
+    )
+
+    embedding = await ollama.generate_embedding(note.raw_transcript)
+
+    return {
+        "summary": summary_result.get("summary"),
+        "tag": summary_result.get("tag"),
+        "notification_timestamp": summary_result.get("notification_timestamp"),
+        "embedding": embedding,
+    }
 
 
 def _schedule_notification_if_needed(note: Note) -> None:
@@ -61,7 +95,6 @@ async def process_new_note(note_id: int) -> None:
             return
 
         try:
-            # Step 1: Update status to transcribing
             note.processing_status = "transcribing"
             session.add(note)
             session.commit()
@@ -69,7 +102,6 @@ async def process_new_note(note_id: int) -> None:
                 note.user_id, f"note-status-{note.id}", "transcribing"
             )
 
-            # Step 2: Transcribe audio (blocking, so run in thread)
             if note.audio_path and Path(note.audio_path).exists():
                 transcript = await asyncio.to_thread(
                     transcription_service.transcribe_file, note.audio_path
@@ -78,7 +110,6 @@ async def process_new_note(note_id: int) -> None:
             elif not note.raw_transcript:
                 raise ValueError("No audio file or transcript available")
 
-            # Step 3: Update status to processing
             note.processing_status = "processing"
             session.add(note)
             session.commit()
@@ -86,31 +117,12 @@ async def process_new_note(note_id: int) -> None:
                 note.user_id, f"note-status-{note.id}", "processing"
             )
 
-            # Get user settings for AI processing
-            user_settings = await _get_user_settings(session, note.user_id)
-            ollama = get_ollama_service(
-                base_url=user_settings.ollama_url,
-                model=user_settings.ollama_model,
-                embedding_model=user_settings.ollama_embedding_model,
-                api_key=user_settings.ollama_api_key,
-            )
+            ai_result = await _process_note_ai(note, session)
+            note.summary = ai_result["summary"]
+            note.tag = ai_result["tag"]
+            note.notification_timestamp = ai_result["notification_timestamp"]
+            note.embedding = ai_result["embedding"]
 
-            # Get available tags
-            available_tags = json.loads(user_settings.custom_tags)
-
-            # Step 4: Generate summary and tag
-            summary_result = await ollama.generate_summary_and_tag(
-                note.raw_transcript, available_tags
-            )
-            note.summary = summary_result["summary"]
-            note.tag = summary_result["tag"]
-            note.notification_timestamp = summary_result["notification_timestamp"]
-
-            # Step 5: Generate embedding
-            embedding = await ollama.generate_embedding(note.raw_transcript)
-            note.embedding = embedding
-
-            # Step 6: Update status to completed
             note.processing_status = "completed"
             note.error_message = None
             note.updated_at = datetime.now(UTC)
@@ -159,7 +171,6 @@ async def reprocess_note(note_id: int) -> None:
             return
 
         try:
-            # Update status to processing
             note.processing_status = "processing"
             session.add(note)
             session.commit()
@@ -167,31 +178,12 @@ async def reprocess_note(note_id: int) -> None:
                 note.user_id, f"note-status-{note.id}", "processing"
             )
 
-            # Get user settings for AI processing
-            user_settings = await _get_user_settings(session, note.user_id)
-            ollama = get_ollama_service(
-                base_url=user_settings.ollama_url,
-                model=user_settings.ollama_model,
-                embedding_model=user_settings.ollama_embedding_model,
-                api_key=user_settings.ollama_api_key,
-            )
+            ai_result = await _process_note_ai(note, session)
+            note.summary = ai_result["summary"]
+            note.tag = ai_result["tag"]
+            note.notification_timestamp = ai_result["notification_timestamp"]
+            note.embedding = ai_result["embedding"]
 
-            # Get available tags
-            available_tags = json.loads(user_settings.custom_tags)
-
-            # Generate new summary and tag
-            summary_result = await ollama.generate_summary_and_tag(
-                note.raw_transcript, available_tags
-            )
-            note.summary = summary_result.get("summary")
-            note.tag = summary_result.get("tag")
-            note.notification_timestamp = summary_result.get("notification_timestamp")
-
-            # Generate new embedding
-            embedding = await ollama.generate_embedding(note.raw_transcript)
-            note.embedding = embedding
-
-            # Update status to completed
             note.processing_status = "completed"
             note.error_message = None
             note.updated_at = datetime.now(UTC)

@@ -1,15 +1,11 @@
 """User and UserSettings models."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
-
-def _utc_now() -> datetime:
-    """Return current UTC time."""
-    return datetime.now(UTC)
-
+from app.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from app.models.note import Note
@@ -23,7 +19,7 @@ class User(SQLModel, table=True):  # type: ignore
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     hashed_password: str
-    created_at: datetime = Field(default_factory=_utc_now)
+    created_at: datetime = Field(default_factory=utc_now)
 
     # Long-lived API token for mobile/Siri shortcuts
     api_token: str | None = Field(default=None, unique=True, index=True)

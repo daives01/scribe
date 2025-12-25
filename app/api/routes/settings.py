@@ -11,6 +11,7 @@ from app.schemas.settings import (
     UserSettingsUpdate,
 )
 from app.services.ollama_service import get_ollama_service
+from app.utils import get_custom_tags
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -20,10 +21,7 @@ def get_settings(user_settings: UserSettingsDep) -> UserSettingsResponse:
     """
     Get the current user's settings.
     """
-    try:
-        custom_tags = json.loads(user_settings.custom_tags)
-    except json.JSONDecodeError:
-        custom_tags = ["Idea", "Todo", "Work", "Personal", "Reference"]
+    custom_tags = get_custom_tags(user_settings.custom_tags)
 
     return UserSettingsResponse(
         ollama_url=user_settings.ollama_url,
@@ -75,10 +73,7 @@ def update_settings(
     session.commit()
     session.refresh(user_settings)
 
-    try:
-        custom_tags = json.loads(user_settings.custom_tags)
-    except json.JSONDecodeError:
-        custom_tags = ["Idea", "Todo", "Work", "Personal", "Reference"]
+    custom_tags = get_custom_tags(user_settings.custom_tags)
 
     return UserSettingsResponse(
         ollama_url=user_settings.ollama_url,

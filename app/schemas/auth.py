@@ -12,13 +12,6 @@ class UserCreate(BaseModel):
     password: str
 
 
-class UserLogin(BaseModel):
-    """Schema for user login (OAuth2 compatible)."""
-
-    username: str
-    password: str
-
-
 class UserResponse(BaseModel):
     """Schema for user response."""
 

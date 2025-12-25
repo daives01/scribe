@@ -16,17 +16,3 @@ class SearchResponse(BaseModel):
     """Schema for search results."""
 
     results: list[NoteResponse]
-
-
-class AskRequest(BaseModel):
-    """Schema for RAG question request."""
-
-    question: str
-    tag_filter: str | None = None
-
-
-class AskResponse(BaseModel):
-    """Schema for RAG answer response."""
-
-    answer: str
-    sources: list[NoteResponse]

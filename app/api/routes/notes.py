@@ -51,9 +51,8 @@ async def upload_voice_note(
     happens in the background. Poll the note endpoint to check status.
     """
     assert current_user.id is not None
-    print("\n[DEBUG] Reached upload_voice_note handler")
-    print(f"[DEBUG] audio_file filename: {audio_file.filename}")
-    print(f"[DEBUG] audio_file content_type: {audio_file.content_type}")
+    note_service = NoteService(session)
+
     # Read file content
     content = await audio_file.read()
 

@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Scribe - All Notes{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-50">All Notes</h1>
+    </div>
+
+    <div class="h-16 mb-4">
+        <form id="filter-form" class="hidden h-full flex items-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md">
+            <input type="text" name="search" id="search-input" placeholder="Search notes..." value=""
+                class="flex-1 min-w-[120px] px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                hx-get="/web/notes/table/data"
+                hx-target="#table-body"
+                hx-swap="innerHTML"
+                hx-include="#filter-form"
+                hx-trigger="input delay:500ms">
+
+            <select name="status"
+                class="flex-1 min-w-[120px] px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                hx-get="/web/notes/table/data"
+                hx-target="#table-body"
+                hx-swap="innerHTML"
+                hx-include="#filter-form"
+                hx-trigger="change">
+                <option value="all" selected>All Statuses</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="transcribing">Transcribing</option>
+                <option value="processing">Processing</option>
+                <option value="failed">Failed</option>
+            </select>
+
+            <select name="archive_filter"
+                class="flex-1 min-w-[120px] px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                hx-get="/web/notes/table/data"
+                hx-target="#table-body"
+                hx-swap="innerHTML"
+                hx-include="#filter-form"
+                hx-trigger="change">
+                <option value="active">Active Only</option>
+                <option value="all">All Notes</option>
+                <option value="archived">Archived Only</option>
+            </select>
+
+            <input type="date" name="date_from" value="" placeholder="From"
+                class="flex-1 min-w-[120px] px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                hx-get="/web/notes/table/data"
+                hx-target="#table-body"
+                hx-swap="innerHTML"
+                hx-include="#filter-form"
+                hx-trigger="change">
+
+            <input type="date" name="date_to" value="" placeholder="To"
+                class="flex-1 min-w-[120px] px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                hx-get="/web/notes/table/data"
+                hx-target="#table-body"
+                hx-swap="innerHTML"
+                hx-include="#filter-form"
+                hx-trigger="change">
+
+            <a href="/notes" hx-get="/web/notes/table" hx-target="main" hx-push-url="true"
+                class="px-3 py-2 text-sm text-neutral-600 dark:text-neutral-400 cursor-pointer transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
+                Clear
+            </a>
+        </form>
+
+        <div id="bulk-toolbar-container" class="hidden h-full flex items-center justify-between gap-2 px-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md"
+            hx-trigger="htmx:afterSettle from:#table-body"
+            hx-swap="none">
+            {% include "components/bulk_actions_toolbar.html" %}
+        </div>
+    </div>
+
+    <div class="overflow-x-auto border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-50">
+        <table class="w-full border-collapse">
+            <thead class="sticky top-0 z-10 bg-neutral-100 dark:bg-neutral-900 border-b-2 border-neutral-200 dark:border-neutral-700">
+                <tr>
+                    <th class="w-12 px-4 py-3 text-left">
+                        <input type="checkbox" id="select-all-notes-header" class="w-4 h-4 cursor-pointer accent-blue-600 dark:accent-blue-500">
+                    </th>
+                    <th data-sort="summary" class="px-4 py-3 text-left font-semibold text-xs cursor-pointer select-none uppercase tracking-wider text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800">
+                        Summary
+                        <span class="sort-indicator ml-1 text-[10px] opacity-30" data-direction="">↕</span>
+                    </th>
+                    <th data-sort="tag" class="px-4 py-3 text-left font-semibold text-xs cursor-pointer select-none uppercase tracking-wider text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800">
+                        Tag
+                        <span class="sort-indicator ml-1 text-[10px] opacity-30" data-direction="">↕</span>
+                    </th>
+                    <th data-sort="status" class="px-4 py-3 text-left font-semibold text-xs cursor-pointer select-none uppercase tracking-wider text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800">
+                        Status
+                        <span class="sort-indicator ml-1 text-[10px] opacity-30" data-direction="">↕</span>
+                    </th>
+                    <th data-sort="created_at" class="px-4 py-3 text-left font-semibold text-xs cursor-pointer select-none uppercase tracking-wider text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800">
+                        Created
+                        <span class="sort-indicator ml-1 text-[10px] opacity-30" data-direction="desc">↓</span>
+                    </th>
+                    <th data-sort="updated_at" class="px-4 py-3 text-left font-semibold text-xs cursor-pointer select-none uppercase tracking-wider text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800">
+                        Updated
+                        <span class="sort-indicator ml-1 text-[10px] opacity-30" data-direction="">↕</span>
+                    </th>
+                    <th class="w-24 px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider text-neutral-700 dark:text-neutral-200">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="table-body"
+                hx-get="/web/notes/table/data"
+                hx-trigger="load"
+                hx-include="#filter-form"
+                hx-swap="innerHTML">
+                <tr>
+                    <td colspan="7" class="px-4 py-12 text-center">
+                        <svg class="w-8 h-8 mx-auto animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="pagination-container"
+        hx-get="/web/notes/table/components/pagination"
+        hx-trigger="load"
+        hx-include="#filter-form"
+        hx-swap="innerHTML">
+        <div class="flex items-center justify-center gap-3 px-4 py-4">
+            <div class="text-sm">Loading...</div>
+        </div>
+    </div>
+
+    <div hx-get="/web/notes/table/data"
+        hx-trigger="sse:note-created from:body, sse:note-deleted from:body, sse:note-archived from:body, sse:note-unarchived from:body"
+        hx-include="#filter-form"
+        hx-target="#table-body"
+        hx-swap="innerHTML"></div>
+</div>
+
+<script>
+    document.body.addEventListener('htmx:afterSettle', function(evt) {
+        if (evt.detail.target.id === 'table-body' || evt.detail.target.closest('#table-body')) {
+            document.querySelectorAll('.note-checkbox').forEach(checkbox => {
+                if (!checkbox.dataset.listenerAttached) {
+                    checkbox.addEventListener('change', function() {
+                        const checkedBoxes = document.querySelectorAll('.note-checkbox:checked');
+                        const bulkContainer = document.getElementById('bulk-toolbar-container');
+                        const selectedCount = document.getElementById('selected-count');
+                        const filter = document.getElementById('filter-form');
+                        if (checkedBoxes.length > 0) {
+                            bulkContainer.classList.remove('hidden');
+                            filter.classList.add('hidden');
+                            selectedCount.textContent = checkedBoxes.length + ' selected';
+                        } else {
+                            bulkContainer.classList.add('hidden');
+                            filter.classList.remove('hidden');
+                        }
+                    });
+                    checkbox.dataset.listenerAttached = 'true';
+                }
+            });
+        }
+    });
+
+    document.body.addEventListener('htmx:afterSettle', function(evt) {
+        if (evt.detail.target.id === 'table-body') {
+            const form = document.getElementById('filter-form');
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                params.set(key, value);
+            }
+            htmx.ajax('GET', '/web/notes/table/components/pagination?' + params.toString(), {
+                target: '#pagination-container',
+                swap: 'innerHTML'
+            });
+        }
+    });
+
+    document.getElementById('select-all-notes-header').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('tbody .note-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        });
+    });
+
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            const indicator = this.querySelector('.sort-indicator');
+            const currentDirection = indicator.dataset.direction;
+
+            let newSortOrder = 'desc';
+            if (currentDirection === 'desc') {
+                newSortOrder = 'asc';
+            }
+
+            const form = document.getElementById('filter-form');
+            const formData = new FormData(form);
+
+            document.querySelectorAll('.sort-indicator').forEach(ind => {
+                ind.textContent = '↕';
+                ind.dataset.direction = '';
+            });
+            indicator.textContent = newSortOrder === 'desc' ? '↓' : '↑';
+            indicator.dataset.direction = newSortOrder;
+
+            const params = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                params.set(key, value);
+            }
+            params.set('sort_by', sortBy);
+            params.set('sort_order', newSortOrder);
+
+            htmx.ajax('GET', '/web/notes/table/data?' + params.toString(), {
+                target: '#table-body',
+                swap: 'innerHTML'
+            }).then(() => {
+                const paginationUrl = '/web/notes/table/components/pagination?' + params.toString();
+                htmx.ajax('GET', paginationUrl, {
+                    target: '#pagination-container',
+                    swap: 'innerHTML'
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -3,7 +3,7 @@
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import text
+from sqlalchemy import or_, text
 from sqlmodel import Session, func, select
 
 from app.models.note import Note
@@ -358,3 +358,175 @@ class NoteService:
         self.session.commit()
         self.session.refresh(note)
         return note
+
+    def list_notes_advanced(
+        self,
+        user_id: int,
+        search: str | None = None,
+        tag: str | None = None,
+        status: str | None = None,
+        include_archived: bool = False,
+        archived_only: bool = False,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+        page: int = 1,
+        per_page: int = 20,
+    ) -> tuple[list[Note], int]:
+        """
+        Advanced list with filters, sorting, and pagination.
+
+        Args:
+            user_id: Owner user ID
+            search: Text search in summary or transcript
+            tag: Filter by tag
+            status: Filter by processing_status
+            include_archived: Include archived notes in results
+            archived_only: Show only archived notes
+            date_from: Filter by date range start (inclusive)
+            date_to: Filter by date range end (inclusive)
+            sort_by: Sort column (created_at, updated_at, summary, tag, status)
+            sort_order: Sort direction (asc, desc)
+            page: Page number (1-indexed)
+            per_page: Results per page
+
+        Returns:
+            Tuple of (notes list, total count)
+        """
+        page = max(1, page)
+        per_page = min(100, max(1, per_page))
+        skip = (page - 1) * per_page
+
+        conditions: list = [Note.user_id == user_id]
+
+        if archived_only:
+            conditions.append(Note.archived == True)  # noqa: E712
+        elif not include_archived:
+            conditions.append(Note.archived == False)  # noqa: E712
+
+        if tag:
+            conditions.append(Note.tag == tag)
+
+        if status:
+            conditions.append(Note.processing_status == status)
+
+        if search:
+            search_term = f"%{search}%"
+
+            conditions.append(
+                or_(
+                    Note.summary.like(search_term),  # type: ignore[union-attr]
+                    Note.raw_transcript.like(search_term),  # type: ignore[union-attr,attr-defined]
+                )
+            )  # type: ignore[arg-type]
+
+        if date_from:
+            conditions.append(Note.created_at >= date_from)
+
+        if date_to:
+            conditions.append(Note.created_at <= date_to)
+
+        count_statement = select(func.count()).where(*conditions)
+        total = self.session.exec(count_statement).one()
+
+        valid_sort_columns = {
+            "created_at": Note.created_at,
+            "updated_at": Note.updated_at,
+            "summary": Note.summary,
+            "tag": Note.tag,
+            "status": Note.processing_status,
+        }
+
+        sort_column = valid_sort_columns.get(sort_by, Note.created_at)
+        sort_attr = (
+            sort_column.desc()  # type: ignore[union-attr]
+            if sort_order == "desc"
+            else sort_column.asc()  # type: ignore[union-attr]
+        )
+
+        statement = (
+            select(Note)
+            .where(*conditions)
+            .order_by(sort_attr)
+            .offset(skip)
+            .limit(per_page)
+        )
+
+        notes = list(self.session.exec(statement).all())
+        return notes, total
+
+    def bulk_archive_notes(self, note_ids: list[int], user_id: int) -> list[Note]:
+        """
+        Archive multiple notes.
+
+        Args:
+            note_ids: List of note IDs to archive
+            user_id: Owner user ID for verification
+
+        Returns:
+            List of updated Note instances
+        """
+        return [
+            self.archive_note(note_id, user_id)
+            for note_id in note_ids
+            if not self._log_note_not_found(note_id, user_id)
+        ]
+
+    def bulk_unarchive_notes(self, note_ids: list[int], user_id: int) -> list[Note]:
+        """
+        Unarchive multiple notes.
+
+        Args:
+            note_ids: List of note IDs to unarchive
+            user_id: Owner user ID for verification
+
+        Returns:
+            List of updated Note instances
+        """
+        return [
+            self.unarchive_note(note_id, user_id)
+            for note_id in note_ids
+            if not self._log_note_not_found(note_id, user_id)
+        ]
+
+    def bulk_delete_notes(self, note_ids: list[int], user_id: int) -> list[int]:
+        """
+        Delete multiple notes.
+
+        Args:
+            note_ids: List of note IDs to delete
+            user_id: Owner user ID for verification
+
+        Returns:
+            List of deleted note IDs
+        """
+        deleted_ids = []
+        for note_id in note_ids:
+            try:
+                self.delete_note(note_id, user_id)
+                deleted_ids.append(note_id)
+            except NotFoundError:
+                logger.warning(
+                    f"Note {note_id} not found or not owned by user {user_id}"
+                )
+                continue
+        return deleted_ids
+
+    def _log_note_not_found(self, note_id: int, user_id: int) -> bool:
+        """
+        Check if note exists, log warning if not.
+
+        Args:
+            note_id: Note ID to check
+            user_id: Owner user ID
+
+        Returns:
+            True if note not found, False otherwise
+        """
+        try:
+            self.get_note(note_id, user_id)
+            return False
+        except NotFoundError:
+            logger.warning(f"Note {note_id} not found or not owned by user {user_id}")
+            return True

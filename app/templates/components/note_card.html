@@ -1,149 +1,131 @@
 {% for note in notes %}
- <div class="bg-white dark:bg-neutral-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm p-7 relative {% if note.processing_status=="completed" %}cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200{% endif %}" {% if
-    note.processing_status=="completed" %} hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main" {% else
-    %}{% endif %}>
+<div class="note-card group bg-white dark:bg-neutral-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 p-5 relative overflow-hidden {% if note.processing_status=="completed" %}cursor-pointer{% endif %}" {% if
+   note.processing_status=="completed" %} hx-get="/web/notes/{{ note.id }}" hx-push-url="true" hx-target="main" {% else
+   %}{% endif %}>
 
     <!-- Archive Button (Top Right) -->
     {% if note.processing_status == "completed" %}
     <button hx-patch="/web/notes/{{ note.id }}/archive"
-        hx-target="closest .bg-white, .dark\\:bg-neutral-950"
+        hx-target="closest .note-card"
         hx-swap="outerHTML"
         hx-on:click="event.stopPropagation()"
-        class="absolute top-7 right-7 btn-small z-10 hover:bg-slate-100 dark:hover:bg-slate-900 text-neutral-400 dark:text-neutral-600"
+        class="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg text-sm transition-all duration-200 z-10 opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
         title="Archive note">
-        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-4 4H9" />
         </svg>
     </button>
     {% endif %}
 
-     <!-- SSE Listener for Card Refresh (when processing complete) -->
-     <div hx-get="/web/notes/{{ note.id }}/card" hx-trigger="sse:note-processed-{{ note.id }} from:body"
-         hx-swap="outerHTML" hx-target="closest .bg-white, .dark\\:bg-neutral-950"></div>
+    <!-- SSE Listener for Card Refresh (when processing complete) -->
+    <div hx-get="/web/notes/{{ note.id }}/card" hx-trigger="sse:note-processed-{{ note.id }} from:body"
+        hx-swap="outerHTML" hx-target="closest .note-card"></div>
 
-     <!-- Status Badge and Actions -->
-     <div class="{% if note.processing_status != 'completed' %}mb-5{% endif %}" hx-get="/web/notes/{{ note.id }}/status" hx-trigger="sse:note-status-{{ note.id }} from:body"
-         hx-swap="outerHTML">
-         <div class="flex items-center justify-between gap-2">
+    <!-- Status Badge and Actions -->
+    <div class="mb-3" hx-get="/web/notes/{{ note.id }}/status" hx-trigger="sse:note-status-{{ note.id }} from:body"
+        hx-swap="outerHTML">
+        <div class="flex items-center justify-between gap-2">
                {% if note.processing_status != "completed" %}
-                <div class="flex items-center gap-1 rounded-full text-xs font-semibold px-2.5 py-0.5 {% if note.processing_status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400{% elif note.processing_status == 'transcribing' %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400{% elif note.processing_status == 'processing' %}bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400{% elif note.processing_status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
-                   {% if note.processing_status in ["pending", "transcribing", "processing"] %}
-                   <svg class="w-3 h-3 {% if note.processing_status == 'pending' %}animate-pulse{% else %}animate-spin{% endif %}" fill="currentColor" viewBox="0 0 24 24">
-                     {% if note.processing_status == 'pending' %}
-                       <circle cx="12" cy="12" r="8" />
-                     {% else %}
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                     {% endif %}
-                   </svg>
-                   {{ note.processing_status }}
-                   {% elif note.processing_status == "failed" %}
-                   <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                   </svg>
-                   Failed
-                   {% endif %}
-               </div>
+               {% from "components/status_badge.html" import status_badge %}
+               {{ status_badge(note.processing_status) }}
                {% endif %}
 
-               <div class="flex gap-1">
-                   {% if note.processing_status == "failed" %}
-                   <!-- Retry Button -->
-                   <button hx-post="/api/notes/{{ note.id }}/retry"
-                       hx-swap="none"
-                       class="btn-small btn-retry"
-                       title="Retry processing">
-                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                       </svg>
-                   </button>
-                   {% endif %}
+              <div class="flex gap-1">
+                  {% if note.processing_status == "failed" %}
+                  <button hx-post="/api/notes/{{ note.id }}/retry"
+                      hx-swap="none"
+                      class="w-7 h-7 flex items-center justify-center rounded-lg text-sm transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50"
+                      title="Retry processing">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                  </button>
+                  {% endif %}
+              </div>
+          </div>
 
+          {% if note.processing_status == "failed" and note.error_message %}
+          <div class="text-xs mt-1.5 text-red-600 dark:text-red-400">
+              {{ note.error_message[:50] }}{% if note.error_message|length > 50 %}...{% endif %}
+          </div>
+          {% endif %}
+      </div>
 
-
-
-               </div>
-           </div>
-
-           {% if note.processing_status == "failed" and note.error_message %}
-           <div class="text-xs mt-2 text-red-600 dark:text-red-400">
-               {{ note.error_message[:50] }}{% if note.error_message|length > 50 %}...{% endif %}
-           </div>
+   <!-- Content Area - Progressive Loading -->
+   {% if note.processing_status == "completed" %}
+       <h3 class="mb-1.5 text-base font-semibold leading-snug line-clamp-2 text-neutral-900 dark:text-neutral-100">
+           {% if note.summary %}
+           {{ note.summary }}
+           {% elif note.raw_transcript %}
+           {{ note.raw_transcript[:80] }}{% if note.raw_transcript|length > 80 %}...{% endif %}
            {% endif %}
-       </div>
+       </h3>
 
-    <!-- Summary or Transcript Preview -->
-    {% if note.processing_status == "completed" %}
-        <h3 class="mb-2 text-lg font-bold leading-none tracking-tight line-clamp-2 text-neutral-950 dark:text-neutral-50">
-            {% if note.summary %}
-            {{ note.summary }}
-            {% elif note.raw_transcript %}
-            {{ note.raw_transcript[:60] }}{% if note.raw_transcript|length > 60 %}...{% endif %}
-            {% endif %}
-        </h3>
+       {% if note.summary and note.raw_transcript %}
+       <p class="mb-3 text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed">
+           {{ note.raw_transcript[:120] }}{% if note.raw_transcript|length > 120 %}...{% endif %}
+       </p>
+       {% endif %}
+   {% else %}
+       <h3 class="mb-1.5 text-base font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
+           {% if note.summary %}
+           {{ note.summary }}
+           {% elif note.raw_transcript %}
+           {{ note.raw_transcript[:80] }}{% if note.raw_transcript|length > 80 %}...{% endif %}
+           {% else %}
+               {% from "components/shimmer.html" import shimmer %}
+               {{ shimmer(height="h-5", width="w-[90%]") }}
+           {% endif %}
+       </h3>
 
-        <!-- Transcript Preview (if summary exists) -->
-        {% if note.summary and note.raw_transcript %}
-        <p class="mb-5 text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2">
-            {{ note.raw_transcript[:100] }}{% if note.raw_transcript|length > 100 %}...{% endif %}
-        </p>
-        {% endif %}
-    {% else %}
-        <h3 class="mb-2 text-lg font-bold leading-none tracking-tight text-neutral-950 dark:text-neutral-50">
-            <div class="shimmer shimmer-title"></div>
-        </h3>
-        <p class="mb-5 text-sm text-neutral-500 dark:text-neutral-400">
-            <div class="shimmer shimmer-text"></div>
-            <div class="shimmer shimmer-text-short mt-2"></div>
-        </p>
-    {% endif %}
+       {% if not note.summary %}
+           <p class="mb-3 text-sm text-neutral-500 dark:text-neutral-400">
+               {% if note.raw_transcript %}
+                   {{ note.raw_transcript[:120] }}{% if note.raw_transcript|length > 120 %}...{% endif %}
+               {% else %}
+                   {% from "components/shimmer.html" import shimmer %}
+                   {{ shimmer(height="h-4", width="w-[100%]") }}
+                   {{ shimmer(height="h-4", width="w-[70%]", extra_classes="mt-1") }}
+               {% endif %}
+           </p>
+       {% endif %}
+   {% endif %}
 
-    <!-- Footer: Tag, Reminder & Timestamp -->
-    <div class="flex items-center justify-between mt-6">
-        <div class="flex items-center gap-2">
-            {% if note.processing_status == "completed" %}
-                {% if note.notification_timestamp %}
-                <span class="reminder-badge" title="{{ note.notification_timestamp.strftime('%Y-%m-%d %H:%M') }}">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="reminder-text" data-reminder="{{ note.notification_timestamp.isoformat() }}"></span>
-                </span>
+   <!-- Footer: Tags, Reminder & Timestamp -->
+   <div class="flex items-center justify-between mt-auto">
+       <div class="flex items-center gap-1.5 flex-wrap">
+                {% if note.processing_status == "completed" %}
+                 {% if note.notification_timestamp %}
+                 {% from "components/reminder_badge.html" import reminder_badge %}
+                 {{ reminder_badge(note.notification_timestamp) }}
+                  {% endif %}
+
+                 {% if note.tag %}
+                 {% from "components/tag_badge.html" import tag_badge %}
+                 {{ tag_badge(note.tag) }}
                  {% endif %}
-
-                {% if note.tag %}
-                <span class="tag-badge" data-tag="{{ note.tag }}">
-                    {{ note.tag }}
-                </span>
-                {% endif %}
             {% else %}
                 {% if note.notification_timestamp %}
-                <span class="reminder-badge" title="{{ note.notification_timestamp.strftime('%Y-%m-%d %H:%M') }}">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="reminder-text" data-reminder="{{ note.notification_timestamp.isoformat() }}"></span>
-                 </span>
-                {% endif %}
-                {% if note.tag %}
-                <span class="tag-badge" data-tag="{{ note.tag }}">
-                    {{ note.tag }}
-                </span>
-                {% endif %}
-                {% if not note.notification_timestamp and not note.tag %}
-                <div class="shimmer" style="width: 60px; height: 24px; border-radius: 9999px;"></div>
+                 {% from "components/reminder_badge.html" import reminder_badge %}
+                 {{ reminder_badge(note.notification_timestamp) }}
+                 {% endif %}
+                 {% if note.tag %}
+                 {% from "components/tag_badge.html" import tag_badge %}
+                 {{ tag_badge(note.tag) }}
+                 {% endif %}
+                 {% if not note.notification_timestamp and not note.tag %}
+                 {% from "components/shimmer.html" import shimmer %}
+                 {{ shimmer(width="w-[60px]", height="h-5", rounded="rounded-full") }}
                 {% endif %}
             {% endif %}
-        </div>
+       </div>
 
-        <span class="text-xs text-neutral-400 dark:text-neutral-500">
-            {{ note.created_at.strftime('%b %d, %Y') }}
-        </span>
-    </div>
+       <span class="text-xs text-neutral-400 dark:text-neutral-500">
+           {{ note.created_at.strftime('%b %d') }}
+       </span>
+   </div>
 </div>
 {% endfor %}
 

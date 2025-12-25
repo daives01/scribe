@@ -5,13 +5,6 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class NoteCreate(BaseModel):
-    """Schema for note creation (internal use)."""
-
-    raw_transcript: str = ""
-    audio_path: str | None = None
-
-
 class NoteUpdate(BaseModel):
     """Schema for note updates."""
 

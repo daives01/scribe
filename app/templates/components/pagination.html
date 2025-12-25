@@ -1,0 +1,34 @@
+<div class="flex items-center justify-center gap-4 px-4 py-4">
+    <button hx-get="/web/notes/table/data?page={{ page - 1 }}&search={{ search }}&tag={{ tag }}&status={{ status }}&include_archived={{ include_archived }}&archived_only={{ archived_only }}&date_from={{ date_from }}&date_to={{ date_to }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&per_page={{ per_page }}"
+        hx-include="#filter-form"
+        hx-target="#table-body"
+        hx-swap="innerHTML"
+        {{ 'disabled' if page == 1 else '' }}
+        class="px-4 py-2 text-sm font-medium rounded-sm bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700 cursor-pointer transition-all hover:bg-neutral-200 dark:hover:bg-neutral-800 {{ 'opacity-50 cursor-not-allowed' if page == 1 else '' }}">
+        Previous
+    </button>
+
+    <span class="text-sm text-neutral-600 dark:text-neutral-400">
+        Showing <strong>{{ start }}</strong>-<strong>{{ end }}</strong> of <strong>{{ total }}</strong>
+    </span>
+
+    <button hx-get="/web/notes/table/data?page={{ page + 1 }}&search={{ search }}&tag={{ tag }}&status={{ status }}&include_archived={{ include_archived }}&archived_only={{ archived_only }}&date_from={{ date_from }}&date_to={{ date_to }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&per_page={{ per_page }}"
+        hx-include="#filter-form"
+        hx-target="#table-body"
+        hx-swap="innerHTML"
+        {{ 'disabled' if end >= total else '' }}
+        class="px-4 py-2 text-sm font-medium rounded-sm bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700 cursor-pointer transition-all hover:bg-neutral-200 dark:hover:bg-neutral-800 {{ 'opacity-50 cursor-not-allowed' if end >= total else '' }}">
+        Next
+    </button>
+
+    <select name="per_page"
+        hx-get="/web/notes/table/data?search={{ search }}&tag={{ tag }}&status={{ status }}&include_archived={{ include_archived }}&archived_only={{ archived_only }}&date_from={{ date_from }}&date_to={{ date_to }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page=1&per_page={value}"
+        hx-include="#filter-form"
+        hx-target="#table-body"
+        hx-swap="innerHTML"
+        class="px-3 py-2 text-sm rounded-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-neutral-700 cursor-pointer">
+        <option value="20" {{ 'selected' if per_page == 20 else '' }}>20 per page</option>
+        <option value="50" {{ 'selected' if per_page == 50 else '' }}>50 per page</option>
+        <option value="100" {{ 'selected' if per_page == 100 else '' }}>100 per page</option>
+    </select>
+</div>
