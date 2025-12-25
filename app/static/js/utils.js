@@ -32,21 +32,16 @@ function getTagColor(tag) {
 }
 
 // Apply colors to tag badges
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.tag-badge[data-tag]').forEach(badge => {
+function initializeTagBadges(container = document) {
+    container.querySelectorAll('.tag-badge[data-tag]').forEach(badge => {
         const tag = badge.dataset.tag;
         const colors = getTagColor(tag);
         badge.classList.add(colors.bg, colors.text, colors.darkBg, colors.darkText);
     });
-});
+}
 
-document.body.addEventListener('htmx:afterSettle', function() {
-    document.querySelectorAll('.tag-badge[data-tag]').forEach(badge => {
-        const tag = badge.dataset.tag;
-        const colors = getTagColor(tag);
-        badge.classList.add(colors.bg, colors.text, colors.darkBg, colors.darkText);
-    });
-});
+// Initialize tag badges on page load and HTMX updates
+initializeTagBadges();
 
 // Handle Enter key for note creation
 document.addEventListener('DOMContentLoaded', function() {
@@ -96,37 +91,58 @@ function showToast(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-// HTMX Event Handlers
-document.body.addEventListener('htmx:toast', function (event) {
-    const { message, type } = event.detail;
-    showToast(message, type || 'success');
-});
+// HTMX Event Handlers (wrapped to ensure DOM is ready)
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.body) {
+        document.body.addEventListener('htmx:toast', function (event) {
+            const { message, type } = event.detail;
+            showToast(message, type || 'success');
+        });
 
-document.body.addEventListener('htmx:afterSwap', function (event) {
-    // Check for toast triggers in response headers
-    const trigger = event.detail.xhr.getResponseHeader('HX-Trigger');
-    if (trigger) {
-        try {
-            const parsed = JSON.parse(trigger);
-            if (parsed.showToast) {
-                showToast(parsed.showToast.message, parsed.showToast.type);
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            // Check for toast triggers in response headers
+            const trigger = event.detail.xhr.getResponseHeader('HX-Trigger');
+            if (trigger) {
+                try {
+                    const parsed = JSON.parse(trigger);
+                    if (parsed.showToast) {
+                        showToast(parsed.showToast.message, parsed.showToast.type);
+                    }
+                } catch (e) {
+                }
             }
-        } catch (e) {
-            // Not JSON, ignore
-        }
-    }
-});
 
-// Handle HTMX errors
-document.body.addEventListener('htmx:responseError', function (event) {
-    const status = event.detail.xhr.status;
-    if (status === 401) {
-        showToast('Please log in to continue', 'error');
-        window.location.href = '/login';
-    } else if (status === 404) {
-        showToast('Resource not found', 'error');
-    } else if (status >= 500) {
-        showToast('Server error. Please try again.', 'error');
+            // Reinitialize tag badges in swapped content
+            initializeTagBadges(event.detail.target);
+
+            // Reinitialize auto-resize textareas
+            event.detail.target.querySelectorAll('textarea[data-auto-resize]').forEach(textarea => {
+                textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+                autoResizeTextarea(textarea);
+            });
+
+            // Reinitialize reminders in swapped content
+            initializeReminders(event.detail.target);
+        });
+
+        document.body.addEventListener('htmx:afterSettle', function(event) {
+            const target = event.detail.target;
+            if (target && target.nodeType === 1) {
+                initializeTagBadges(target);
+            }
+        });
+
+        document.body.addEventListener('htmx:responseError', function (event) {
+            const status = event.detail.xhr.status;
+            if (status === 401) {
+                showToast('Please log in to continue', 'error');
+                window.location.href = '/login';
+            } else if (status === 404) {
+                showToast('Resource not found', 'error');
+            } else if (status >= 500) {
+                showToast('Server error. Please try again.', 'error');
+            }
+        });
     }
 });
 
@@ -149,7 +165,6 @@ function formatRelativeTime(dateString) {
 }
 
 // Format reminder time for future timestamps
-// Returns null if past (should hide badge)
 function formatReminderTime(dateString) {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return null;
@@ -171,6 +186,9 @@ function formatReminderTime(dateString) {
     return date.toLocaleDateString();
 }
 
+// Make formatReminderTime available globally for Alpine components
+window.formatReminderTime = formatReminderTime;
+
 // Debounce function
 function debounce(func, wait) {
     let timeout;
@@ -184,53 +202,28 @@ function debounce(func, wait) {
     };
 }
 
-// Auto-resize textarea
-function autoResizeTextarea(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
+// Initialize reminder badges
+function initializeReminders(container = document) {
+    const reminders = container.querySelectorAll('.reminder-text[data-reminder]');
+    reminders.forEach(element => {
+        const reminderTime = element.dataset.reminder;
+        if (!reminderTime) return;
+
+        const formatted = formatReminderTime(reminderTime);
+        if (formatted) {
+            element.textContent = formatted;
+        } else {
+            const badge = element.closest('.reminder-badge');
+            if (badge) {
+                badge.remove();
+            }
+        }
+    });
 }
 
-// Initialize auto-resize textareas
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('textarea[data-auto-resize]').forEach(textarea => {
-        textarea.addEventListener('input', () => autoResizeTextarea(textarea));
-        autoResizeTextarea(textarea);
-    });
-});
-
-// HTMX after swap - reinitialize components
-document.body.addEventListener('htmx:afterSwap', function (event) {
-    // Reinitialize auto-resize textareas
-    event.detail.target.querySelectorAll('textarea[data-auto-resize]').forEach(textarea => {
-        textarea.addEventListener('input', () => autoResizeTextarea(textarea));
-        autoResizeTextarea(textarea);
-    });
-});
-
-// HTMX after settle - initialize reminder times (fires after DOM is fully updated)
-document.body.addEventListener('htmx:afterSettle', function (event) {
-    document.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
-        const reminderTime = element.dataset.reminder;
-        const formatted = formatReminderTime(reminderTime);
-        if (formatted) {
-            element.textContent = formatted;
-        } else {
-            element.closest('.reminder-badge').remove();
-        }
-    });
-});
-
-// Initialize reminder times on page load
+// Initialize reminders on page load
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.reminder-text[data-reminder]').forEach(element => {
-        const reminderTime = element.dataset.reminder;
-        const formatted = formatReminderTime(reminderTime);
-        if (formatted) {
-            element.textContent = formatted;
-        } else {
-            element.closest('.reminder-badge').remove();
-        }
-    });
+    initializeReminders(document);
 
     // Update reminder times every minute
     setInterval(function() {
@@ -240,8 +233,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if (formatted) {
                 element.textContent = formatted;
             } else {
-                element.closest('.reminder-badge').remove();
+                const badge = element.closest('.reminder-badge');
+                if (badge) {
+                    badge.remove();
+                }
             }
         });
     }, 60000);
+});
+
+// Auto-resize textarea
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// Initialize auto-resize textareas on page load
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('textarea[data-auto-resize]').forEach(textarea => {
+        textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+        autoResizeTextarea(textarea);
+    });
 });

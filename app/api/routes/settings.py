@@ -4,7 +4,7 @@ import json
 
 from fastapi import APIRouter
 
-from app.api.deps import CurrentUserDep, SessionDep, UserSettingsDep
+from app.api.deps import SessionDep, UserSettingsDep
 from app.schemas.settings import (
     ModelsResponse,
     UserSettingsResponse,
@@ -39,7 +39,6 @@ def get_settings(user_settings: UserSettingsDep) -> UserSettingsResponse:
 def update_settings(
     update_data: UserSettingsUpdate,
     session: SessionDep,
-    current_user: CurrentUserDep,
     user_settings: UserSettingsDep,
 ) -> UserSettingsResponse:
     """

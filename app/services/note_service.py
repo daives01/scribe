@@ -111,12 +111,13 @@ class NoteService:
         tag: str | None = None,
     ) -> Note:
         """
-        Update a note's content.
+        Update a note's content (simple CRUD, no reprocessing).
 
         Args:
             note_id: Note ID to update
             user_id: Owner user ID for verification
             raw_transcript: Optional new transcript
+            summary: Optional new summary
             tag: Optional new tag
 
         Returns:
@@ -129,8 +130,6 @@ class NoteService:
 
         if raw_transcript is not None:
             note.raw_transcript = raw_transcript
-            # Mark for re-processing if transcript changed
-            note.processing_status = "pending"
 
         if summary is not None:
             note.summary = summary
@@ -139,6 +138,7 @@ class NoteService:
             note.tag = tag
 
         note.updated_at = datetime.now(UTC)
+
         self.session.add(note)
         self.session.commit()
         self.session.refresh(note)
@@ -249,7 +249,7 @@ class NoteService:
         return notes
 
     async def get_similar_notes(
-        self, note_id: int, user_id: int, user_settings: UserSettings, limit: int = 5
+        self, note_id: int, user_id: int, _user_settings: UserSettings, limit: int = 5
     ) -> list[Note]:
         """
         Find notes similar to a given note.

@@ -66,7 +66,6 @@ async def upload_voice_note(
         f.write(content)
 
     # Create note with pending status
-    note_service = NoteService(session)
     note = note_service.create_note(
         user_id=current_user.id,
         audio_path=str(file_path),
@@ -127,13 +126,9 @@ async def update_note(
     update_data: NoteUpdate,
     session: SessionDep,
     current_user: CurrentUserDep,
-    background_tasks: BackgroundTasks,
 ) -> NoteResponse:
     """
-    Update a note's content or tag.
-
-    If the transcript is changed, the note will be reprocessed
-    to generate new summary, tag, and embedding.
+    Update a note's content (simple CRUD, no reprocessing).
     """
     assert current_user.id is not None
     note_service = NoteService(session)
@@ -145,11 +140,6 @@ async def update_note(
             summary=update_data.summary,
             tag=update_data.tag,
         )
-
-        # If transcript was updated, trigger reprocessing
-        if update_data.raw_transcript is not None:
-            background_tasks.add_task(reprocess_note, cast(int, note.id))
-
         return NoteResponse.model_validate(note)
     except NotFoundError as e:
         raise e.to_http_exception()
@@ -238,7 +228,6 @@ async def delete_note(
     note_id: int,
     session: SessionDep,
     current_user: CurrentUserDep,
-    background_tasks: BackgroundTasks,
     request: Request,
 ) -> dict | Response:
     """

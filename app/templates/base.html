@@ -91,6 +91,41 @@
 
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Utility Scripts (must load before Alpine components) -->
+  <script src="/static/js/utils.js"></script>
+
+  <!-- Alpine.js Components (must be defined before Alpine.js loads) -->
+  <script>
+    window.reminderBadge = function(timestamp) {
+        return {
+            timestamp: timestamp,
+            text: '',
+
+            initReminder() {
+                this.updateText();
+
+                this.$el.addEventListener('htmx:afterSwap', () => {
+                    this.updateText();
+                });
+
+                setInterval(() => {
+                    this.updateText();
+                }, 60000);
+            },
+
+            updateText() {
+                const formatted = window.formatReminderTime(this.timestamp);
+                if (formatted) {
+                    this.text = formatted;
+                    this.$el.hidden = false;
+                } else {
+                    this.$el.hidden = true;
+                }
+            }
+        };
+    };
+  </script>
   <style>
     [x-cloak] { display: none !important; }
     .htmx-indicator { display: none; }
@@ -191,8 +226,6 @@
   <!-- Modal Container -->
   <div id="modal-container"></div>
 
-  <!-- Utility Scripts -->
-  <script src="/static/js/utils.js"></script>
   <script>
     // SSE Debugging (only in development)
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

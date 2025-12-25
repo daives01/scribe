@@ -17,7 +17,7 @@ engine = create_engine(
 )
 
 
-def _load_sqlite_vec(dbapi_conn, connection_record):
+def _load_sqlite_vec(dbapi_conn, _connection_record):
     """Load sqlite-vec extension when connection is created."""
     dbapi_conn.enable_load_extension(True)
     sqlite_vec.load(dbapi_conn)

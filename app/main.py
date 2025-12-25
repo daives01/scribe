@@ -24,7 +24,7 @@ from app.services.ollama_service import get_ollama_service
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     create_db_and_tables()
     Path("uploads").mkdir(exist_ok=True)
 

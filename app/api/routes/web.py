@@ -51,7 +51,7 @@ BackgroundTasksDep = Annotated[BackgroundTasks, Depends()]
 
 
 async def get_current_user_from_cookie(
-    request: Request,
+    _request: Request,
     session: Session,
     access_token: str | None,
 ) -> User | None:
@@ -319,7 +319,6 @@ async def update_note_web(
     note_id: int,
     request: Request,
     session: SessionDep,
-    background_tasks: BackgroundTasks,
     access_token: str | None = Cookie(default=None),
     raw_transcript: Annotated[str | None, Form()] = None,
     summary: Annotated[str | None, Form()] = None,
@@ -328,7 +327,7 @@ async def update_note_web(
     """
     Update a note via web form (HTMX).
 
-    Returns the updated note content HTML.
+    Returns the updated note card HTML for real-time updates.
     """
     user = await get_current_user_from_cookie(request, session, access_token)
     if not user:
@@ -338,7 +337,7 @@ async def update_note_web(
     note_service = NoteService(session)
 
     try:
-        note = note_service.update_note(
+        note_service.update_note(
             note_id,
             user.id,
             raw_transcript=raw_transcript,
@@ -346,15 +345,14 @@ async def update_note_web(
             tag=tag,
         )
 
-        # If transcript was updated, trigger reprocessing
-        if raw_transcript is not None:
-            background_tasks.add_task(process_new_note, cast(int, note.id))
-
+        note = note_service.get_note(note_id, user.id)
         return templates.TemplateResponse(
-            "partials/note_content.html",
+            "components/note_card.html",
             {
                 "request": request,
-                "note": note,
+                "notes": [note],
+                "total": 1,
+                "show_count": False,
             },
         )
     except NotFoundError:
@@ -514,7 +512,6 @@ async def get_notes_table_pagination(
     request: Request,
     session: SessionDep,
     access_token: str | None = Cookie(default=None),
-    total: int = 0,
     page: int = 1,
     per_page: int = 20,
     search: str = "",
@@ -587,7 +584,6 @@ async def get_notes_table_pagination(
 async def bulk_notes_action(
     request: Request,
     session: SessionDep,
-    background_tasks: BackgroundTasks,
     access_token: str | None = Cookie(default=None),
     note_ids: Annotated[str | None, Form()] = None,
     action: Annotated[str | None, Form()] = None,
@@ -954,6 +950,28 @@ async def unarchive_note_web(
         return HTMLResponse(content="Note not found", status_code=404)
 
 
+@router.delete("/web/notes/{note_id}", response_class=HTMLResponse)
+async def delete_note_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: str | None = Cookie(default=None),
+):
+    """Delete a note (HTMX)."""
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+    assert user.id is not None
+
+    note_service = NoteService(session)
+    try:
+        note_service.delete_note(note_id, user.id)
+        await event_manager.broadcast(user.id, "note-deleted", str(note_id))
+        return HTMLResponse(content="", status_code=200)
+    except NotFoundError:
+        return HTMLResponse(content="Note not found", status_code=404)
+
+
 @router.post("/web/notes/text", response_class=HTMLResponse)
 async def create_text_note_web(
     request: Request,
@@ -1042,42 +1060,6 @@ async def get_recent_notes_web(
         )
 
 
-@router.get("/web/notes/{note_id}", response_class=HTMLResponse)
-async def get_note_detail_web(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: str | None = Cookie(default=None),
-):
-    """
-    Get note detail page (HTMX).
-
-    Returns the full note detail page HTML.
-    """
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return RedirectResponse(url="/login", status_code=303)
-
-    assert user.id is not None
-    note_service = NoteService(session)
-
-    try:
-        note = note_service.get_note(note_id, user.id)
-        return templates.TemplateResponse(
-            "note_detail.html",
-            {
-                "request": request,
-                "note": note,
-                "current_user": user,
-            },
-        )
-    except NotFoundError:
-        return HTMLResponse(content="Note not found", status_code=404)
-    except Exception as e:
-        logger.exception(f"Error loading note detail: {e}")
-        return HTMLResponse(content="Error loading note", status_code=500)
-
-
 @router.get("/web/notes/{note_id}/card", response_class=HTMLResponse)
 async def get_note_card_web(
     note_id: int,
@@ -1115,6 +1097,46 @@ async def get_note_card_web(
         return HTMLResponse(content="", status_code=500)
 
 
+@router.get("/web/notes/{note_id}/modal", response_class=HTMLResponse)
+async def get_note_modal_web(
+    note_id: int,
+    request: Request,
+    session: SessionDep,
+    access_token: str | None = Cookie(default=None),
+) -> HTMLResponse:
+    """
+    Get note modal HTML (HTMX).
+
+    Returns HTML for note modal, used for inline editing.
+    """
+    user = await get_current_user_from_cookie(request, session, access_token)
+    if not user:
+        return HTMLResponse(content="", status_code=401)
+
+    assert user.id is not None
+    note_service = NoteService(session)
+
+    try:
+        note = note_service.get_note(note_id, user.id)
+        user_settings = get_user_settings_for_user(session, user)
+        available_tags = get_custom_tags(user_settings.custom_tags)
+
+        return templates.TemplateResponse(
+            "components/note_modal.html",
+            {
+                "request": request,
+                "note": note,
+                "available_tags": available_tags,
+                "now": datetime.now(UTC),
+            },
+        )
+    except NotFoundError:
+        return HTMLResponse(content="", status_code=404)
+    except Exception as e:
+        logger.exception(f"Error loading note modal: {e}")
+        return HTMLResponse(content="", status_code=500)
+
+
 @router.get("/web/notes/{note_id}/status", response_class=HTMLResponse)
 async def get_note_status_web(
     note_id: int,
@@ -1148,39 +1170,4 @@ async def get_note_status_web(
         return HTMLResponse(content="", status_code=404)
     except Exception as e:
         logger.exception(f"Error loading note status: {e}")
-        return HTMLResponse(content="", status_code=500)
-
-
-@router.get("/web/notes/{note_id}/content", response_class=HTMLResponse)
-async def get_note_content_web(
-    note_id: int,
-    request: Request,
-    session: SessionDep,
-    access_token: str | None = Cookie(default=None),
-) -> HTMLResponse:
-    """
-    Get note content HTML for SSE updates (HTMX).
-
-    Returns HTML for the note content, used for live updates.
-    """
-    user = await get_current_user_from_cookie(request, session, access_token)
-    if not user:
-        return HTMLResponse(content="", status_code=401)
-
-    assert user.id is not None
-    note_service = NoteService(session)
-
-    try:
-        note = note_service.get_note(note_id, user.id)
-        return templates.TemplateResponse(
-            "partials/note_content.html",
-            {
-                "request": request,
-                "note": note,
-            },
-        )
-    except NotFoundError:
-        return HTMLResponse(content="", status_code=404)
-    except Exception as e:
-        logger.exception(f"Error loading note content: {e}")
         return HTMLResponse(content="", status_code=500)

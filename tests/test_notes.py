@@ -85,8 +85,6 @@ def test_update_note_transcript(client: TestClient, auth_headers, test_note):
     assert response.status_code == 200
     data = response.json()
     assert data["raw_transcript"] == new_transcript
-    # Status should be pending for reprocessing
-    assert data["processing_status"] == "pending"
 
 
 def test_delete_note(client: TestClient, auth_headers, test_note):

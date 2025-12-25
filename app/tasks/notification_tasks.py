@@ -50,8 +50,8 @@ async def send_note_notification(note_id: int) -> None:
             or "New note reminder"
         )
 
-        # Generate URL for the note
-        note_url = f"{settings.base_url}/web/notes/{note_id}"
+        # Generate URL for the note (routes to homepage since we use modal)
+        note_url = f"{settings.base_url}/"
 
         try:
             async with get_home_assistant_service(
