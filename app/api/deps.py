@@ -9,8 +9,8 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models.user import User, UserSettings
-from app.services.auth_service import decode_access_token
 from app.utils import get_custom_tags
+from app.utils.auth import decode_access_token
 from app.utils.exceptions import AuthenticationError
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -22,12 +22,11 @@ def get_db() -> Generator[Session, None, None]:
 
 
 SessionDep = Annotated[Session, Depends(get_db)]
-TokenDep = Annotated[str | None, Depends(oauth2_scheme)]
 
 
 def get_current_user(
     session: SessionDep,
-    token: TokenDep,
+    token: Annotated[str | None, Depends(oauth2_scheme)],
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> User:
@@ -149,3 +148,55 @@ def get_user_tags(user_settings: UserSettingsDep) -> list[str]:
 
 
 UserTagsDep = Annotated[list[str], Depends(get_user_tags)]
+
+
+def _update_user_settings(
+    user_settings: UserSettings,
+    ollama_url: str | None = None,
+    ollama_model: str | None = None,
+    ollama_embedding_model: str | None = None,
+    ollama_api_key: str | None = None,
+    custom_tags: list[str] | None = None,
+    homeassistant_url: str | None = None,
+    homeassistant_token: str | None = None,
+    homeassistant_device: str | None = None,
+) -> None:
+    """
+    Update user settings with provided values.
+
+    Args:
+        user_settings: UserSettings instance to update
+        ollama_url: Optional Ollama URL
+        ollama_model: Optional Ollama model name
+        ollama_embedding_model: Optional embedding model name
+        ollama_api_key: Optional API key
+        custom_tags: Optional list of custom tags
+        homeassistant_url: Optional Home Assistant URL
+        homeassistant_token: Optional Home Assistant token
+        homeassistant_device: Optional Home Assistant device name
+    """
+    import json
+
+    if ollama_url is not None:
+        user_settings.ollama_url = ollama_url
+
+    if ollama_model is not None:
+        user_settings.ollama_model = ollama_model
+
+    if ollama_embedding_model is not None:
+        user_settings.ollama_embedding_model = ollama_embedding_model
+
+    if ollama_api_key is not None:
+        user_settings.ollama_api_key = ollama_api_key
+
+    if custom_tags is not None:
+        user_settings.custom_tags = json.dumps(custom_tags)
+
+    if homeassistant_url is not None:
+        user_settings.homeassistant_url = homeassistant_url
+
+    if homeassistant_token is not None:
+        user_settings.homeassistant_token = homeassistant_token
+
+    if homeassistant_device is not None:
+        user_settings.homeassistant_device = homeassistant_device

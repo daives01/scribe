@@ -9,18 +9,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import (
-    auth_router,
-    events_router,
-    notes_router,
-    search_router,
-    settings_router,
-    web_router,
-)
+from app.api.routes.auth import router as auth_router
+from app.api.routes.events import router as events_router
+from app.api.routes.notes import router as notes_router
+from app.api.routes.search import router as search_router
+from app.api.routes.settings import router as settings_router
+from app.api.routes.web import router as web_router
 from app.config import settings
 from app.database import create_db_and_tables
-from app.scheduler import set_scheduler
-from app.services.ollama_service import get_ollama_service
+from app.services.ollama_service import OllamaService
 
 
 @asynccontextmanager
@@ -28,10 +25,10 @@ async def lifespan(_app: FastAPI):
     create_db_and_tables()
     Path("uploads").mkdir(exist_ok=True)
 
+    global scheduler
     jobstore = SQLAlchemyJobStore(url=settings.database_url)
     scheduler = AsyncIOScheduler(jobstores={"default": jobstore})
     scheduler.start()
-    set_scheduler(scheduler)
 
     yield
     scheduler.shutdown()
@@ -78,7 +75,7 @@ async def health_check() -> dict:
     Returns status of the application and its dependencies.
     """
     # Check Ollama connection
-    ollama = get_ollama_service()
+    ollama = OllamaService()
     ollama_connected = await ollama.check_connection()
 
     # Database is connected if we reached this point

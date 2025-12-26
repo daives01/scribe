@@ -14,7 +14,7 @@ def test_search_requires_auth(client: TestClient):
 
 
 # Note: Full search tests require Ollama to be running
-# These are placeholder tests for the API structure
+# These are placeholder tests for API structure
 
 
 @pytest.mark.skip(reason="Requires Ollama connection")
@@ -29,4 +29,8 @@ def test_search_notes(client: TestClient, auth_headers, test_note):
     data = response.json()
     assert "results" in data
 
-    assert "sources" in data
+    if data["results"]:
+        result = data["results"][0]
+        assert "note" in result
+        assert "similarity" in result
+        assert 0 <= result["similarity"] <= 1

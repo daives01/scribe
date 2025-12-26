@@ -1,10 +1,12 @@
 """Search endpoints."""
 
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.api.deps import CurrentUserIdDep, SessionDep, UserSettingsDep
+from fastapi import APIRouter, Depends
+
+from app.api.deps import SessionDep, UserSettingsDep, get_current_user_id
 from app.schemas.note import NoteResponse
-from app.schemas.search import SearchRequest, SearchResponse
+from app.schemas.search import SearchRequest, SearchResponse, SearchResultItem
 from app.services.note_service import NoteService
 
 router = APIRouter(prefix="/api", tags=["search"])
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/api", tags=["search"])
 async def semantic_search(
     request: SearchRequest,
     session: SessionDep,
-    user_id: CurrentUserIdDep,
+    user_id: Annotated[int, Depends(get_current_user_id)],
     user_settings: UserSettingsDep,
 ) -> SearchResponse:
     """
@@ -23,10 +25,16 @@ async def semantic_search(
     Returns notes most relevant to the query based on vector embeddings.
     """
     note_service = NoteService(session)
-    results = await note_service.search_notes_semantic(
+    notes, similarities = await note_service.search_notes_semantic(
         user_id=user_id,
         query=request.query,
         user_settings=user_settings,
         limit=request.limit,
     )
-    return SearchResponse(results=[NoteResponse.model_validate(n) for n in results])
+
+    result_items = []
+    for note, similarity in zip(notes, similarities):
+        note_response = NoteResponse.model_validate(note)
+        result_items.append(SearchResultItem(note=note_response, similarity=similarity))
+
+    return SearchResponse(results=result_items)

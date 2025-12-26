@@ -5,23 +5,23 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, cast
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Cookie, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
-from app.api.deps import get_db
+from app.api.deps import SessionDep, _update_user_settings, get_user_settings
 from app.models.user import User, UserSettings
-from app.services.auth_service import (
+from app.services.note_service import NoteService
+from app.services.ollama_service import OllamaService
+from app.tasks.processing_tasks import process_new_note
+from app.utils import get_custom_tags
+from app.utils.auth import (
     create_access_token,
     decode_access_token,
     get_password_hash,
     verify_password,
 )
-from app.services.note_service import NoteService
-from app.services.ollama_service import get_ollama_service
-from app.tasks.processing_tasks import process_new_note
-from app.utils import get_custom_tags
 from app.utils.events import event_manager
 from app.utils.exceptions import AuthenticationError, NotFoundError
 
@@ -41,10 +41,6 @@ def from_json(value):
 
 
 templates.env.filters["from_json"] = from_json
-
-# Type alias for session dependency
-SessionDep = Annotated[Session, Depends(get_db)]
-BackgroundTasksDep = Annotated[BackgroundTasks, Depends()]
 
 
 # ============= Cookie-based Auth Helpers =============
@@ -67,19 +63,6 @@ async def get_current_user_from_cookie(
         return user
     except AuthenticationError:
         return None
-
-
-def get_user_settings_for_user(session: Session, user: User) -> UserSettings:
-    """Get or create user settings."""
-    assert user.id is not None
-    statement = select(UserSettings).where(UserSettings.user_id == user.id)
-    settings = session.exec(statement).first()
-    if not settings:
-        settings = UserSettings(user_id=cast(int, user.id))
-        session.add(settings)
-        session.commit()
-        session.refresh(settings)
-    return settings
 
 
 # ============= Auth Page Routes =============
@@ -215,7 +198,7 @@ async def settings_page(
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
     custom_tags = get_custom_tags(user_settings.custom_tags)
 
     # Get server URL from request
@@ -258,7 +241,7 @@ async def get_similar_notes_web(
         return HTMLResponse(content="", status_code=401)
     assert user.id is not None
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
     note_service = NoteService(session)
     logger.info(f"Finding similar notes for note_id={note_id}, user={user.username}")
 
@@ -299,7 +282,7 @@ async def edit_note_field(
     if not user:
         return HTMLResponse(content="", status_code=401)
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
     note_service = NoteService(session)
 
     try:
@@ -418,7 +401,7 @@ async def get_notes_table_page(
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
     custom_tags = get_custom_tags(user_settings.custom_tags)
 
     return templates.TemplateResponse(
@@ -646,15 +629,18 @@ async def search_notes(
     if not user:
         return HTMLResponse(content="", status_code=401)
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
     note_service = NoteService(session)
 
     try:
-        results = await note_service.search_notes_semantic(
+        results, similarities = await note_service.search_notes_semantic(
             user_id=cast(int, user.id), query=q, user_settings=user_settings, limit=5
         )
+        # Combine notes with their similarity scores for the template
+        results_with_similarity = list(zip(results, similarities))
         return templates.TemplateResponse(
-            "components/search_results.html", {"request": request, "results": results}
+            "components/search_results.html",
+            {"request": request, "results": results_with_similarity},
         )
     except Exception as e:
         logger.exception(f"Error in search_notes: {e}")
@@ -679,14 +665,12 @@ async def get_models(
     if not user:
         return HTMLResponse(content="<option>Please log in</option>")
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
 
     # Use provided URL or fallback to saved URL
     target_url = ollama_url if ollama_url else user_settings.ollama_url
 
-    ollama = get_ollama_service(
-        base_url=target_url, api_key=user_settings.ollama_api_key
-    )
+    ollama = OllamaService(base_url=target_url, api_key=user_settings.ollama_api_key)
 
     try:
         models = await ollama.get_available_models()
@@ -719,14 +703,12 @@ async def get_connection_status(
     if not user:
         return HTMLResponse(content="<p>Please log in</p>")
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
 
     # Use provided URL or fallback to saved URL
     target_url = ollama_url if ollama_url else user_settings.ollama_url
 
-    ollama = get_ollama_service(
-        base_url=target_url, api_key=user_settings.ollama_api_key
-    )
+    ollama = OllamaService(base_url=target_url, api_key=user_settings.ollama_api_key)
     connected = await ollama.check_connection()
 
     if connected:
@@ -786,42 +768,31 @@ async def update_settings_web(
     if not user:
         return HTMLResponse(content="", status_code=401)
 
-    user_settings = get_user_settings_for_user(session, user)
+    user_settings = get_user_settings(session, user)
 
-    if ollama_url is not None:
-        user_settings.ollama_url = ollama_url
-
-    if ollama_model is not None:
-        user_settings.ollama_model = ollama_model
-
-    if ollama_embedding_model is not None:
-        user_settings.ollama_embedding_model = ollama_embedding_model
-
-    if ollama_api_key is not None:
-        # Handle empty string as None/empty
-        user_settings.ollama_api_key = (
-            ollama_api_key if ollama_api_key.strip() else None
-        )
-
+    custom_tags_list: list[str] | None = None
     if custom_tags is not None:
-        # Split by comma and strip whitespace
-        tags_list = [tag.strip() for tag in custom_tags.split(",") if tag.strip()]
-        user_settings.custom_tags = json.dumps(tags_list)
+        custom_tags_list = [
+            tag.strip() for tag in custom_tags.split(",") if tag.strip()
+        ]
 
-    if homeassistant_url is not None:
-        user_settings.homeassistant_url = (
-            homeassistant_url if homeassistant_url.strip() else None
-        )
-
-    if homeassistant_token is not None:
-        user_settings.homeassistant_token = (
-            homeassistant_token if homeassistant_token.strip() else None
-        )
-
-    if homeassistant_device is not None:
-        user_settings.homeassistant_device = (
-            homeassistant_device if homeassistant_device.strip() else None
-        )
+    _update_user_settings(
+        user_settings,
+        ollama_url=ollama_url if ollama_url else None,
+        ollama_model=ollama_model if ollama_model else None,
+        ollama_embedding_model=(
+            ollama_embedding_model if ollama_embedding_model else None
+        ),
+        ollama_api_key=ollama_api_key.strip() if ollama_api_key else None,
+        custom_tags=custom_tags_list,
+        homeassistant_url=homeassistant_url.strip() if homeassistant_url else None,
+        homeassistant_token=(
+            homeassistant_token.strip() if homeassistant_token else None
+        ),
+        homeassistant_device=(
+            homeassistant_device.strip() if homeassistant_device else None
+        ),
+    )
 
     session.add(user_settings)
     session.commit()
@@ -1118,7 +1089,7 @@ async def get_note_modal_web(
 
     try:
         note = note_service.get_note(note_id, user.id)
-        user_settings = get_user_settings_for_user(session, user)
+        user_settings = get_user_settings(session, user)
         available_tags = get_custom_tags(user_settings.custom_tags)
 
         return templates.TemplateResponse(

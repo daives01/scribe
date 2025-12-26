@@ -10,7 +10,6 @@ import numpy as np
 
 from app.config import settings
 from app.models.note import Note
-from app.utils.vector import serialize_vector
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +158,11 @@ class OllamaService:
                 logger.info(
                     f"Successfully generated embedding: {embedding.shape} {embedding.dtype}"
                 )
-                return serialize_vector(embedding)
+                if isinstance(embedding, list):
+                    embedding = np.array(embedding, dtype=np.float32)
+                elif embedding.dtype != np.float32:
+                    embedding = embedding.astype(np.float32)
+                return embedding.tobytes()
 
             except httpx.HTTPStatusError as e:
                 # Provide a more descriptive error if possible
@@ -345,29 +348,3 @@ Answer:"""
                             break
                     except json.JSONDecodeError:
                         continue
-
-
-def get_ollama_service(
-    base_url: str | None = None,
-    model: str | None = None,
-    embedding_model: str | None = None,
-    api_key: str | None = None,
-) -> OllamaService:
-    """
-    Factory function to create OllamaService with custom settings.
-
-    Args:
-        base_url: Optional custom Ollama URL
-        model: Optional custom model
-        embedding_model: Optional custom embedding model
-        api_key: Optional API key
-
-    Returns:
-        Configured OllamaService instance
-    """
-    return OllamaService(
-        base_url=base_url,
-        model=model,
-        embedding_model=embedding_model,
-        api_key=api_key,
-    )

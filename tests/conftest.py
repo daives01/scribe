@@ -11,7 +11,7 @@ from sqlmodel.pool import StaticPool
 from app.api.deps import get_db
 from app.main import app
 from app.models import Note, User, UserSettings
-from app.services.auth_service import create_access_token, get_password_hash
+from app.utils.auth import create_access_token, get_password_hash
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite://"

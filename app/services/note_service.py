@@ -8,7 +8,7 @@ from sqlmodel import Session, func, select
 
 from app.models.note import Note
 from app.models.user import UserSettings
-from app.services.ollama_service import get_ollama_service
+from app.services.ollama_service import OllamaService
 from app.utils.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
@@ -192,7 +192,7 @@ class NoteService:
             List of matching notes ordered by relevance
         """
         # Get Ollama service with user's settings
-        ollama = get_ollama_service(
+        ollama = OllamaService(
             base_url=user_settings.ollama_url,
             model=user_settings.ollama_model,
             embedding_model=user_settings.ollama_embedding_model,

@@ -6,7 +6,7 @@ from app.config import settings
 from app.database import engine
 from app.models.note import Note
 from app.models.user import UserSettings
-from app.services.homeassistant_service import get_home_assistant_service
+from app.services.homeassistant_service import HomeAssistantService
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ async def send_note_notification(note_id: int) -> None:
         note_url = f"{settings.base_url}/"
 
         try:
-            async with get_home_assistant_service(
+            async with HomeAssistantService(
                 str(user_settings.homeassistant_url),
                 str(user_settings.homeassistant_token),
             ) as ha_service:

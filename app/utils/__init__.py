@@ -2,22 +2,30 @@
 
 import json
 
+from app.utils.auth import (
+    create_access_token,
+    decode_access_token,
+    get_password_hash,
+    verify_password,
+)
 from app.utils.exceptions import (
     AuthenticationError,
     NotFoundError,
-    PermissionDeniedError,
+    ServiceError,
     VoiceNotesException,
 )
-from app.utils.vector import serialize_vector
 
 DEFAULT_TAGS = ["Idea", "Todo", "Work", "Personal", "Reference"]
 
 __all__ = [
+    "create_access_token",
+    "decode_access_token",
+    "get_password_hash",
+    "verify_password",
     "AuthenticationError",
     "NotFoundError",
-    "PermissionDeniedError",
+    "ServiceError",
     "VoiceNotesException",
-    "serialize_vector",
     "DEFAULT_TAGS",
     "get_custom_tags",
 ]

@@ -25,21 +25,6 @@ class AuthenticationError(VoiceNotesException):
         )
 
 
-class PermissionDeniedError(VoiceNotesException):
-    """Raised when user doesn't have permission for an action."""
-
-    def __init__(self, detail: str = "Permission denied"):
-        self.detail = detail
-        super().__init__(detail)
-
-    def to_http_exception(self) -> HTTPException:
-        """Convert to FastAPI HTTPException."""
-        return HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=self.detail,
-        )
-
-
 class NotFoundError(VoiceNotesException):
     """Raised when a resource is not found."""
 
@@ -51,21 +36,6 @@ class NotFoundError(VoiceNotesException):
         """Convert to FastAPI HTTPException."""
         return HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=self.detail,
-        )
-
-
-class ProcessingError(VoiceNotesException):
-    """Raised when processing (transcription, AI) fails."""
-
-    def __init__(self, detail: str = "Processing failed"):
-        self.detail = detail
-        super().__init__(detail)
-
-    def to_http_exception(self) -> HTTPException:
-        """Convert to FastAPI HTTPException."""
-        return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=self.detail,
         )
 

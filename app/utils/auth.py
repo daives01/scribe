@@ -1,4 +1,4 @@
-"""Authentication service for password hashing and JWT tokens."""
+"""Authentication utility functions."""
 
 from datetime import UTC, datetime, timedelta
 

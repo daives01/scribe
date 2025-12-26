@@ -12,7 +12,14 @@ class SearchRequest(BaseModel):
     limit: int = 10
 
 
+class SearchResultItem(BaseModel):
+    """Schema for a single search result with similarity score."""
+
+    note: NoteResponse
+    similarity: float
+
+
 class SearchResponse(BaseModel):
     """Schema for search results."""
 
-    results: list[NoteResponse]
+    results: list[SearchResultItem]

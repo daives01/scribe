@@ -10,7 +10,7 @@ from sqlmodel import select
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.user import User, UserSettings
 from app.schemas.auth import ApiTokenResponse, Token, UserCreate, UserResponse
-from app.services.auth_service import (
+from app.utils.auth import (
     create_access_token,
     get_password_hash,
     verify_password,

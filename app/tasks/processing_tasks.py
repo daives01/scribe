@@ -10,8 +10,8 @@ from sqlmodel import Session, select
 from app.database import engine
 from app.models.note import Note
 from app.models.user import UserSettings
-from app.scheduler import get_scheduler
-from app.services.ollama_service import get_ollama_service
+from app.scheduler import scheduler
+from app.services.ollama_service import OllamaService
 from app.services.transcription_service import transcription_service
 from app.tasks.notification_tasks import send_note_notification
 from app.utils import get_custom_tags
@@ -41,7 +41,7 @@ async def _process_note_ai(note: Note, session: Session):
         Dictionary with summary, tag, notification_timestamp, embedding
     """
     user_settings = await _get_user_settings(session, note.user_id)
-    ollama = get_ollama_service(
+    ollama = OllamaService(
         base_url=user_settings.ollama_url,
         model=user_settings.ollama_model,
         embedding_model=user_settings.ollama_embedding_model,
@@ -68,7 +68,8 @@ def _schedule_notification_if_needed(note: Note) -> None:
     """Schedule a notification for the note if timestamp is set and in the future."""
     if note.notification_timestamp and note.notification_timestamp > datetime.now():
         try:
-            scheduler = get_scheduler()
+            if not scheduler:
+                raise RuntimeError("Scheduler not initialized")
             scheduler.add_job(
                 send_note_notification,
                 "date",

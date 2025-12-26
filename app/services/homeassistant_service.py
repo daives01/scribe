@@ -69,7 +69,3 @@ class HomeAssistantService:
         except Exception as e:
             logger.error(f"Test connection failed to {url}: {e}")
             return False
-
-
-def get_home_assistant_service(base_url: str, token: str) -> HomeAssistantService:
-    return HomeAssistantService(base_url, token)
