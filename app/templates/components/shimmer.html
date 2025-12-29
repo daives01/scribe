@@ -1,3 +1,5 @@
 {% macro shimmer(height="h-4", width="w-full", rounded="rounded", extra_classes="") %}
-<div class="{{ height }} {{ width }} {{ rounded }} bg-gradient-to-r from-neutral-200 via-neutral-300 to-neutral-200 dark:from-neutral-800 dark:via-neutral-700 dark:to-neutral-800 bg-[length:200%_100%] animate-shimmer {{ extra_classes }}"></div>
+<div class="{{ height }} {{ width }} {{ rounded }} bg-neutral-200 dark:bg-neutral-800 relative overflow-hidden {{ extra_classes }}">
+  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-neutral-600/40 animate-shimmer"></div>
+</div>
 {% endmacro %}

@@ -57,13 +57,13 @@
             },
           },
           animation: {
-            'shimmer': 'shimmer 1.5s infinite',
+            'shimmer': 'shimmer 2s ease-in-out infinite',
             'slide-in': 'slideIn 0.3s ease',
           },
           keyframes: {
             shimmer: {
-              '0%': { backgroundPosition: '-200% 0' },
-              '100%': { backgroundPosition: '200% 0' },
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' },
             },
             slideIn: {
               'from': { transform: 'translateX(100%)', opacity: '0' },
@@ -80,7 +80,6 @@
     }
   </script>
 
-  <!-- Dark mode initialization (prevents flash) -->
   <script>
     document.documentElement.classList.toggle(
       'dark',
@@ -89,13 +88,9 @@
     );
   </script>
 
-  <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <!-- Utility Scripts (must load before Alpine components) -->
   <script src="/static/js/utils.js"></script>
 
-  <!-- Alpine.js Components (must be defined before Alpine.js loads) -->
   <script>
     window.reminderBadge = function(timestamp) {
         return {
@@ -133,20 +128,37 @@
     .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .shimmer-placeholder {
+      background-color: rgb(229 231 235);
+      border-radius: 0.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .dark .shimmer-placeholder {
+      background-color: rgb(38 38 38);
+    }
+    .shimmer-placeholder::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      animation: shimmer 2s ease-in-out infinite;
+    }
+    .dark .shimmer-placeholder::after {
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    }
+    .status-badge-container:has(> *) {
+      margin-bottom: 0.75rem;
+    }
   </style>
 
-  <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
   <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
 
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-
-
-  <!-- Theme Script (runs immediately to prevent flash) -->
   <script src="/static/js/theme.js"></script>
 
   {% block head %}{% endblock %}
@@ -155,11 +167,9 @@
 <body class="h-full bg-neutral-50 dark:bg-neutral-900 transition-colors duration-200"
       hx-ext="sse" sse-connect="/api/events">
 
-  <!-- Top Navigation -->
   <nav class="border-b sticky top-0 z-40 border-slate-200/60 dark:border-slate-800 bg-white dark:bg-neutral-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="h-16 flex items-center justify-between">
-        <!-- Logo -->
         <a href="/" class="flex items-center gap-2 text-xl font-bold text-neutral-950 dark:text-neutral-50" hx-get="/" hx-target="main" hx-push-url="true">
           <svg class="w-8 h-8 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -169,21 +179,17 @@
         </a>
 
         <div class="flex items-center gap-2">
-          <!-- Theme Toggle -->
           <button @click="darkMode = !darkMode; localStorage.setItem('theme', darkMode ? 'dark' : 'light')" class="p-2 rounded-lg transition text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" title="Toggle theme">
-            <!-- Sun Icon (shown in dark mode) -->
             <svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            <!-- Moon Icon (shown in light mode) -->
             <svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
           </button>
 
-          <!-- All Notes -->
           <a href="/web/notes/table" class="p-2 rounded-lg transition text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" title="All Notes">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -191,7 +197,6 @@
             </svg>
           </a>
 
-          <!-- Settings -->
           <a href="/settings" hx-get="/settings" hx-target="main" hx-push-url="true" class="p-2 rounded-lg transition text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" title="Settings">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -202,7 +207,6 @@
           </a>
 
           {% if current_user %}
-          <!-- User Menu -->
           <div class="flex items-center gap-2 ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
             <span class="text-sm text-neutral-500 dark:text-neutral-400">{{ current_user.username }}</span>
             <a href="/logout" class="text-sm px-3 py-1 rounded-lg transition text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200">
@@ -215,19 +219,14 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Toast Notifications Container -->
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
-
-  <!-- Modal Container -->
   <div id="modal-container"></div>
 
   <script>
-    // SSE Debugging (only in development)
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       document.body.addEventListener('htmx:sseMessage', function (event) {
         console.log('[SSE]', event.detail.type);
