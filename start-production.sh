@@ -1,8 +1,21 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+
+# Load shell environment (for PATH, etc.) when running from Automator
+# This ensures uv, ffmpeg, and other tools are found
+if [ -f ~/.zshrc ]; then
+    source ~/.zshrc
+elif [ -f ~/.bash_profile ]; then
+    source ~/.bash_profile
+elif [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+
+# Add common macOS paths if not already in PATH
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 echo "🚀 Starting Scribe in production mode..."
 
@@ -56,14 +69,24 @@ mkdir -p uploads logs
 echo "🗄️ Running database migrations..."
 uv run alembic upgrade head
 
-echo "🚀 Starting Scribe in production mode..."
+echo "🚀 Starting server in background..."
 
 # Run with production settings: multiple workers, proper logging
-exec uv run uvicorn app.main:app \
+# Run in background and save PID so Automator can exit
+nohup uv run uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
     --workers 2 \
     --log-level info \
     --access-log \
-    --no-use-colors
+    --no-use-colors \
+    > logs/scribe.out.log 2> logs/scribe.err.log &
+
+SERVER_PID=$!
+echo $SERVER_PID > logs/scribe.pid
+
+echo "✓ Server started (PID: $SERVER_PID)"
+echo "   Logs: logs/scribe.out.log"
+echo "   Errors: logs/scribe.err.log"
+echo "   PID file: logs/scribe.pid"
 

@@ -77,7 +77,7 @@ def create_auth_response(user_id: int, redirect_url: str = "/") -> RedirectRespo
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=not settings.debug,  # Secure cookies in production (HTTPS only)
+        secure=False,  # Set False for HTTP - browsers won't send Secure cookies over HTTP
         max_age=60 * 60 * 24 * 7,
         samesite="lax",
     )
