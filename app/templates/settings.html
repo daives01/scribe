@@ -5,9 +5,8 @@
 {% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
 
-    <!-- Header -->
     <div class="flex items-center gap-4">
-        <button hx-get="/" hx-push-url="true" hx-target="main" class="inline-flex items-center justify-center w-10 h-10 text-neutral-400 transition-colors duration-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
+        <button hx-get="/" hx-push-url="true" hx-target="main" class="inline-flex items-center justify-center w-10 h-10 text-neutral-500 dark:text-neutral-400 transition-colors duration-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -15,7 +14,6 @@
         <h1 class="text-3xl font-bold text-neutral-950 dark:text-neutral-50">Settings</h1>
     </div>
 
-    <!-- Tabs -->
     <div x-data="{ activeTab: 'ai' }">
         <div class="relative w-full">
             <div class="flex items-center justify-start w-full overflow-x-auto border-b border-neutral-200 dark:border-neutral-800">
@@ -34,20 +32,24 @@
             </div>
         </div>
 
-        <!-- AI Configuration Panel -->
         <div x-show="activeTab === 'ai'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="p-6 mt-6 rounded-xl bg-neutral-50 dark:bg-neutral-900">
             <form id="settings-form" hx-patch="/web/settings" hx-swap="none"
-                hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
+                hx-trigger="input changed delay:1000ms from:input[type='text'], input changed delay:1000ms from:input[type='url'], change delay:1000ms from:input[type='password'], change delay:500ms from:select"
+                hx-on::before-request="const s = document.getElementById('ai-save-status'); s.classList.remove('hidden'); s.textContent = 'Saving...'; s.className = 'text-xs text-neutral-600 dark:text-neutral-400'"
+                hx-on::after-request="const s = document.getElementById('ai-save-status'); if(event.detail.successful) { s.textContent = 'Saved'; s.className = 'text-xs text-green-600 dark:text-green-400'; setTimeout(() => s.classList.add('hidden'), 2000); } else { s.classList.add('hidden'); }"
                 class="space-y-6">
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Ollama URL</label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-medium text-neutral-950 dark:text-neutral-50">Ollama URL</label>
+                            <span id="ai-save-status" class="hidden"></span>
+                        </div>
                         <input type="url" name="ollama_url" value="{{ settings.ollama_url }}"
                             placeholder="http://localhost:11434" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 appearance-none dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
                             hx-get="/web/settings/status"
                             hx-trigger="keyup changed delay:1000ms" hx-target="#connection-status" hx-include="this" />
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The URL where your Ollama server is running (updates status automatically)</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">The URL where your Ollama server is running (updates status automatically)</p>
                     </div>
 
                     <div>
@@ -59,50 +61,35 @@
                                 hx-swap="innerHTML">
                                 <option value="{{ settings.ollama_model }}" selected>{{ settings.ollama_model }}</option>
                             </select>
-                            <svg class="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500 dark:text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The model to use for summarization and Q&A</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">The model to use for summarization and Q&A</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Embedding Model</label>
-                        <div class="relative">
-                            <input type="text" name="ollama_embedding_model" value="{{ settings.ollama_embedding_model }}"
-                                placeholder="nomic-embed-text" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
-                        </div>
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The model to use for semantic search (e.g., nomic-embed-text, all-minilm)</p>
+                        <input type="text" name="ollama_embedding_model" value="{{ settings.ollama_embedding_model }}"
+                            placeholder="nomic-embed-text" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">The model to use for semantic search (e.g., nomic-embed-text, all-minilm)</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">API Key (Optional)</label>
                         <input type="password" name="ollama_api_key" value="{{ settings.ollama_api_key or '' }}"
                             placeholder="••••••••" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">Only required if your Ollama instance requires authentication</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">Only required if your Ollama instance requires authentication</p>
                     </div>
                 </div>
-
-                <button type="submit"
-                    class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-neutral-400 dark:focus:ring-offset-neutral-900">
-                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Settings
-                </button>
             </form>
 
-            <!-- Connection Status -->
             <div id="connection-status" hx-get="/web/settings/status" hx-trigger="load" hx-swap="innerHTML"
-                class="p-6 mt-6 rounded-xl bg-neutral-100 dark:bg-neutral-950">
-                <!-- Status loaded via HTMX -->
+                class="p-6 mt-6 rounded-xl bg-neutral-100 dark:bg-neutral-800">
             </div>
         </div>
 
-        <!-- Integration Panel -->
         <div x-show="activeTab === 'integration'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="p-6 mt-6 rounded-xl bg-neutral-50 dark:bg-neutral-900">
-
-            <!-- Siri / API Token -->
             <div class="mb-8">
                 <div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-800">
                     <div class="p-2 rounded-lg bg-gradient-to-br from-red-500 to-orange-400">
@@ -113,13 +100,13 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Mobile & Siri Integration</h2>
-                        <p class="text-sm text-neutral-500 dark:text-neutral-400">Record voice notes from your phone using Siri</p>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Record voice notes from your phone using Siri</p>
                     </div>
                 </div>
 
                 <div id="api-token-section" class="mt-4">
                     {% if api_token %}
-                    <div class="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-950">
+                    <div class="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm font-medium text-neutral-950 dark:text-neutral-50">Your API Token</span>
                             <button hx-delete="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
@@ -128,7 +115,7 @@
                                 Revoke
                             </button>
                         </div>
-                        <code class="block p-3 text-sm break-all rounded bg-white dark:bg-neutral-950 text-neutral-950 dark:text-neutral-50">{{ api_token }}</code>
+                        <code class="block p-3 text-sm break-all rounded bg-white dark:bg-neutral-900 text-neutral-950 dark:text-neutral-50 border border-neutral-200 dark:border-neutral-700">{{ api_token }}</code>
                     </div>
                     {% else %}
                     <button hx-post="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
@@ -151,7 +138,7 @@
                         How to set up Siri Shortcuts
                     </summary>
 
-                    <div class="mt-4 p-4 space-y-4 text-sm rounded-lg bg-neutral-100 dark:bg-neutral-950">
+                    <div class="mt-4 p-4 space-y-4 text-sm rounded-lg bg-neutral-100 dark:bg-neutral-800">
                         <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 1:</strong> Generate an API token above if you haven't already.</p>
 
                         <p class="text-neutral-950 dark:text-neutral-50"><strong>Step 2:</strong> Open the <strong>Shortcuts</strong> app on your iPhone/iPad.</p>
@@ -161,8 +148,8 @@
                         <ol class="list-decimal list-inside space-y-2 pl-2 text-neutral-950 dark:text-neutral-50">
                             <li><strong>Record Audio</strong> - Records your voice note</li>
                             <li><strong>Get Contents of URL</strong> - With these settings:
-                                <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-neutral-500 dark:text-neutral-400">
-                                    <li>URL: <code class="px-1 rounded bg-white dark:bg-neutral-950 text-neutral-950 dark:text-neutral-50">{{ server_url }}/api/upload</code></li>
+                                <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-neutral-600 dark:text-neutral-400">
+                                    <li>URL: <code class="px-1 rounded bg-white dark:bg-neutral-900 text-neutral-950 dark:text-neutral-50 border border-neutral-200 dark:border-neutral-700">{{ server_url }}/api/upload</code></li>
                                     <li>Method: <strong>POST</strong></li>
                                     <li>Headers:
                                         <ul class="list-disc list-inside pl-4">
@@ -189,21 +176,25 @@
                 </details>
             </div>
 
-            <!-- Home Assistant -->
             <form hx-patch="/web/settings" hx-swap="none"
-                hx-on::after-request="if(event.detail.successful) showToast('Settings saved!', 'success')"
+                hx-trigger="input changed delay:1000ms from:input[type='text'], input changed delay:1000ms from:input[type='url'], change delay:1000ms from:input[type='password']"
+                hx-on::before-request="const s = document.getElementById('ha-save-status'); s.classList.remove('hidden'); s.textContent = 'Saving...'; s.className = 'text-xs text-neutral-600 dark:text-neutral-400'"
+                hx-on::after-request="const s = document.getElementById('ha-save-status'); if(event.detail.successful) { s.textContent = 'Saved'; s.className = 'text-xs text-green-600 dark:text-green-400'; setTimeout(() => s.classList.add('hidden'), 2000); } else { s.classList.add('hidden'); }"
                 class="space-y-6">
-                <div class="flex items-center gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-                    <svg class="w-6 h-6 text-neutral-950 dark:text-neutral-50" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
-                    </svg>
-                    <div>
-                        <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Home Assistant Notifications</h2>
-                        <p class="text-sm text-neutral-500 dark:text-neutral-400">Receive push notifications on your mobile device</p>
+                <div class="flex items-center justify-between pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-neutral-950 dark:text-neutral-50" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+                        </svg>
+                        <div>
+                            <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Home Assistant Notifications</h2>
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Receive push notifications on your mobile device</p>
+                        </div>
                     </div>
+                    <span id="ha-save-status" class="hidden"></span>
                 </div>
 
                 <div class="space-y-4">
@@ -211,65 +202,53 @@
                         <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Home Assistant URL</label>
                         <input type="url" name="homeassistant_url" value="{{ settings.homeassistant_url or '' }}"
                             placeholder="https://your-ha-instance.com" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The URL of your Home Assistant instance</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">The URL of your Home Assistant instance</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Access Token</label>
                         <input type="password" name="homeassistant_token" value="{{ settings.homeassistant_token or '' }}"
                             placeholder="••••••••" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">Long-lived access token from Home Assistant Settings > Devices & Services > Mobile App</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">Long-lived access token from Home Assistant Settings > Devices & Services > Mobile App</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Device Name</label>
                         <input type="text" name="homeassistant_device" value="{{ settings.homeassistant_device or '' }}"
                             placeholder="iphone" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
-                        <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">The device name configured in the Home Assistant Companion app (e.g., 'iphone', 'pixel')</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">The device name configured in the Home Assistant Companion app (e.g., 'iphone', 'pixel')</p>
                     </div>
                 </div>
-
-                <button type="submit"
-                    class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-neutral-400 dark:focus:ring-offset-neutral-900">
-                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Settings
-                </button>
             </form>
         </div>
 
-        <!-- Tags Panel -->
         <div x-show="activeTab === 'tags'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="p-6 mt-6 rounded-xl bg-neutral-50 dark:bg-neutral-900">
             <form hx-patch="/web/settings" hx-swap="none"
-                hx-on::after-request="if(event.detail.successful) showToast('Tags saved!', 'success')"
+                hx-trigger="input changed delay:1000ms from:input[name='custom_tags']"
+                hx-on::before-request="const s = document.getElementById('tags-save-status'); s.classList.remove('hidden'); s.textContent = 'Saving...'; s.className = 'text-xs text-neutral-600 dark:text-neutral-400'"
+                hx-on::after-request="const s = document.getElementById('tags-save-status'); if(event.detail.successful) { s.textContent = 'Saved'; s.className = 'text-xs text-green-600 dark:text-green-400'; setTimeout(() => s.classList.add('hidden'), 2000); } else { s.classList.add('hidden'); }"
                 class="space-y-6">
-                <div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-800">
-                    <svg class="w-6 h-6 text-neutral-950 dark:text-neutral-50" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    <div>
-                        <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Custom Tags</h2>
-                        <p class="text-sm text-neutral-500 dark:text-neutral-400">Tags available for categorizing your notes</p>
+                <div class="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-neutral-950 dark:text-neutral-50" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        <div>
+                            <h2 class="text-lg font-semibold text-neutral-950 dark:text-neutral-50">Custom Tags</h2>
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Tags available for categorizing your notes</p>
+                        </div>
                     </div>
+                    <span id="tags-save-status" class="hidden"></span>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium mb-2 text-neutral-950 dark:text-neutral-50">Tags (comma-separated)</label>
                     <input type="text" name="custom_tags" value="{{ settings.custom_tags | join(', ') }}"
                         placeholder="Idea, Todo, Work, Personal, Reference" class="flex w-full h-10 px-3 py-2 text-sm bg-white border rounded-md border-neutral-300 text-neutral-950 placeholder-neutral-400 focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-50 dark:placeholder-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-700" />
-                    <p class="text-xs mt-1 text-neutral-500 dark:text-neutral-400">These tags will be available when categorizing notes</p>
+                        <p class="text-xs mt-1 text-neutral-600 dark:text-neutral-400">These tags will be available when categorizing notes</p>
                 </div>
-
-                <button type="submit"
-                    class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-200 rounded-md bg-neutral-950 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-neutral-400 dark:focus:ring-offset-neutral-900">
-                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Tags
-                </button>
             </form>
         </div>
     </div>

@@ -70,14 +70,14 @@ async def get_connection_status(
         return HTMLResponse(
             content="""
             <div class="flex items-center gap-3">
-                <div class="p-2 rounded-full" style="background-color: rgb(16 185 129 / 0.15);">
-                    <svg class="w-5 h-5" style="color: var(--color-success);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
                 <div>
-                    <p class="font-medium" style="color: var(--color-success);">Connected to Ollama</p>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">Your AI backend is ready</p>
+                    <p class="font-medium text-green-600 dark:text-green-400">Connected to Ollama</p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Your AI backend is ready</p>
                 </div>
             </div>
             """
@@ -86,14 +86,14 @@ async def get_connection_status(
         return HTMLResponse(
             content="""
             <div class="flex items-center gap-3">
-                <div class="p-2 rounded-full" style="background-color: rgb(239 68 68 / 0.15);">
-                    <svg class="w-5 h-5" style="color: var(--color-error);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+                    <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </div>
                 <div>
-                    <p class="font-medium" style="color: var(--color-error);">Cannot connect to Ollama</p>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">Make sure Ollama is running at the configured URL</p>
+                    <p class="font-medium text-red-600 dark:text-red-400">Cannot connect to Ollama</p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Make sure Ollama is running at the configured URL</p>
                 </div>
             </div>
             """
@@ -177,18 +177,16 @@ async def generate_api_token_web(
     session.commit()
 
     html_content = f"""
-    <div class="p-4 rounded-lg" style="background-color: var(--color-bg-tertiary);">
+    <div class="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-800">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium">Your API Token</span>
+            <span class="text-sm font-medium text-neutral-950 dark:text-neutral-50">Your API Token</span>
             <button hx-delete="/web/api-token" hx-target="#api-token-section" hx-swap="innerHTML"
                 hx-confirm="Revoke this token? Any Siri shortcuts using it will stop working."
-                class="text-xs px-2 py-1 rounded"
-                style="color: var(--color-error); background-color: rgb(239 68 68 / 0.1);">
+                class="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-red-600 transition-colors duration-200 rounded-md bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 dark:focus:ring-red-400 dark:focus:ring-offset-neutral-900">
                 Revoke
             </button>
         </div>
-        <code class="block p-3 rounded text-sm break-all"
-            style="background-color: var(--color-bg-primary);">{api_token}</code>
+        <code class="block p-3 text-sm break-all rounded bg-white dark:bg-neutral-900 text-neutral-950 dark:text-neutral-50 border border-neutral-200 dark:border-neutral-700">{api_token}</code>
     </div>
     """
     return HTMLResponse(content=html_content)
