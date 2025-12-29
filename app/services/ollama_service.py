@@ -158,9 +158,7 @@ class OllamaService:
                 logger.info(
                     f"Successfully generated embedding: {embedding.shape} {embedding.dtype}"
                 )
-                if isinstance(embedding, list):
-                    embedding = np.array(embedding, dtype=np.float32)
-                elif embedding.dtype != np.float32:
+                if embedding.dtype != np.float32:
                     embedding = embedding.astype(np.float32)
                 return embedding.tobytes()
 

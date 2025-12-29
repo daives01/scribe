@@ -1,5 +1,6 @@
 """API dependencies for dependency injection."""
 
+import json
 from collections.abc import Generator
 from typing import Annotated
 
@@ -60,7 +61,6 @@ def get_current_user(
                     return user
         except AuthenticationError:
             pass
-            pass
 
     # Try JWT token from Cookie
     cookie_token = request.cookies.get("access_token")
@@ -73,11 +73,10 @@ def get_current_user(
                     return user
         except AuthenticationError:
             pass
-            pass
 
     # Try API token from Authorization header
     if authorization and authorization.startswith("Bearer "):
-        api_token = authorization[7:]  # Remove "Bearer " prefix
+        api_token = authorization.removeprefix("Bearer ").strip()
 
         # Look up user by API token
         statement = select(User).where(User.api_token == api_token)
@@ -175,8 +174,6 @@ def _update_user_settings(
         homeassistant_token: Optional Home Assistant token
         homeassistant_device: Optional Home Assistant device name
     """
-    import json
-
     if ollama_url is not None:
         user_settings.ollama_url = ollama_url
 

@@ -17,6 +17,7 @@ from app.api.routes.settings import router as settings_router
 from app.api.routes.web import router as web_router
 from app.config import settings
 from app.database import create_db_and_tables
+from app import scheduler
 from app.services.ollama_service import OllamaService
 
 
@@ -25,13 +26,16 @@ async def lifespan(_app: FastAPI):
     create_db_and_tables()
     Path("uploads").mkdir(exist_ok=True)
 
-    global scheduler
     jobstore = SQLAlchemyJobStore(url=settings.database_url)
-    scheduler = AsyncIOScheduler(jobstores={"default": jobstore})
-    scheduler.start()
+    scheduler_instance = AsyncIOScheduler(jobstores={"default": jobstore})
+    scheduler_instance.start()
+
+    # Update the module-level scheduler so other modules can use it
+    scheduler.scheduler = scheduler_instance
 
     yield
-    scheduler.shutdown()
+    scheduler_instance.shutdown()
+    scheduler.scheduler = None
 
 
 app = FastAPI(
@@ -41,19 +45,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Static files and routers follow...
-
-# Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Include API routers

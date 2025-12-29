@@ -1,6 +1,11 @@
 """Application configuration using Pydantic Settings."""
 
+import logging
+import warnings
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -30,6 +35,38 @@ class Settings(BaseSettings):
 
     # Base URL for notifications (used for clickable HA notifications)
     base_url: str = "http://localhost:8000"
+
+    # CORS
+    cors_origins: list[str] = ["*"]
+
+    def __init__(self, **kwargs):
+        """Initialize settings and validate production configuration."""
+        super().__init__(**kwargs)
+        self._validate_production_settings()
+
+    def _validate_production_settings(self) -> None:
+        """Validate and warn about insecure production settings."""
+        if not self.debug:
+            # Production mode - check for insecure settings
+            if self.secret_key == "change-me-in-production":
+                warnings.warn(
+                    "SECRET_KEY is set to default value. Change this in production!",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                logger.warning(
+                    "SECRET_KEY is set to default value. Change this in production!"
+                )
+
+            if "*" in self.cors_origins:
+                warnings.warn(
+                    "CORS is configured to allow all origins (*). Restrict this in production!",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                logger.warning(
+                    "CORS is configured to allow all origins (*). Restrict this in production!"
+                )
 
 
 settings = Settings()

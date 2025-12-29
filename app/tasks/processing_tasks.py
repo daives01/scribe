@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from app.database import engine
 from app.models.note import Note
 from app.models.user import UserSettings
-from app.scheduler import scheduler
+from app import scheduler
 from app.services.ollama_service import OllamaService
 from app.services.transcription_service import transcription_service
 from app.tasks.notification_tasks import send_note_notification
@@ -68,9 +68,9 @@ def _schedule_notification_if_needed(note: Note) -> None:
     """Schedule a notification for the note if timestamp is set and in the future."""
     if note.notification_timestamp and note.notification_timestamp > datetime.now():
         try:
-            if not scheduler:
+            if not scheduler.scheduler:
                 raise RuntimeError("Scheduler not initialized")
-            scheduler.add_job(
+            scheduler.scheduler.add_job(
                 send_note_notification,
                 "date",
                 run_date=note.notification_timestamp,
